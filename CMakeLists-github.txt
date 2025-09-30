@@ -1,0 +1,172 @@
+cmake_minimum_required(VERSION 3.16)
+
+project(veyon-chat-plugin VERSION 1.0.0)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Find required packages
+find_package(Qt5 REQUIRED COMPONENTS Core Widgets Network Multimedia)
+
+# Set up Qt
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTORCC ON)
+
+# Include directories
+include_directories(src)
+
+# Source files
+set(SOURCES
+    src/ChatFeaturePlugin.cpp
+    src/ChatMasterWidget.cpp
+    src/ChatClientWidget.cpp
+    src/ChatMessage.cpp
+    src/ChatSession.cpp
+    src/ChatServiceClient.cpp
+)
+
+# Header files
+set(HEADERS
+    src/ChatFeaturePlugin.h
+    src/ChatMasterWidget.h
+    src/ChatClientWidget.h
+    src/ChatMessage.h
+    src/ChatSession.h
+    src/ChatServiceClient.h
+)
+
+# UI files
+set(UI_FILES
+    ui/ChatMasterWidget.ui
+    ui/ChatClientWidget.ui
+)
+
+# Resource files
+set(RESOURCES
+    resources/chat.qrc
+)
+
+# Create mock Veyon headers for GitHub Actions build
+if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/veyon-headers")
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/veyon-headers")
+    
+    # Create minimal mock headers
+    file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/veyon-headers/FeatureProviderInterface.h"
+        "#pragma once\n"
+        "#include <QObject>\n"
+        "#include <QVersionNumber>\n"
+        "#include <QVariantMap>\n"
+        "class Feature { public: enum Flag { Mode = 1, Master = 2, Service = 4, Worker = 8 }; typedef QString Uid; };\n"
+        "typedef QList<Feature> FeatureList;\n"
+        "class FeatureProviderInterface {\n"
+        "public:\n"
+        "    enum Operation { Start, Stop };\n"
+        "    virtual ~FeatureProviderInterface() = default;\n"
+        "    virtual const FeatureList& featureList() const = 0;\n"
+        "    virtual bool controlFeature(Feature::Uid, Operation, const QVariantMap&, const QList<void*>&) = 0;\n"
+        "    virtual bool handleFeatureMessage(void&, void&, void&) = 0;\n"
+        "    virtual bool handleFeatureMessage(void&, void&) = 0;\n"
+        "};\n"
+    )
+    
+    file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/veyon-headers/PluginInterface.h"
+        "#pragma once\n"
+        "#include <QObject>\n"
+        "#include <QVersionNumber>\n"
+        "class Plugin { public: typedef QString Uid; };\n"
+        "class PluginInterface {\n"
+        "public:\n"
+        "    virtual ~PluginInterface() = default;\n"
+        "    virtual Plugin::Uid uid() const = 0;\n"
+        "    virtual QVersionNumber version() const = 0;\n"
+        "    virtual QString name() const = 0;\n"
+        "    virtual QString description() const = 0;\n"
+        "    virtual QString vendor() const = 0;\n"
+        "    virtual QString copyright() const = 0;\n"
+        "    virtual QString shortName() const = 0;\n"
+        "    virtual void upgrade(const QVersionNumber&) = 0;\n"
+        "};\n"
+    )
+    
+    file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/veyon-headers/Feature.h"
+        "#pragma once\n"
+        "#include <QString>\n"
+        "#include <QKeySequence>\n"
+        "class Feature {\n"
+        "public:\n"
+        "    typedef QString Uid;\n"
+        "    enum Flag { None = 0, Mode = 1, Action = 2, Session = 4, Meta = 8, Option = 16, Checked = 32, Master = 256, Service = 512, Worker = 1024, Builtin = 4096 };\n"
+        "    Feature(Uid uid, int flags, QString name, QString displayName, QString displayNameActive, QString description, QString iconUrl, QKeySequence shortcut)\n"
+        "        : m_uid(uid), m_flags(flags), m_name(name) {}\n"
+        "    Uid uid() const { return m_uid; }\n"
+        "private:\n"
+        "    Uid m_uid; int m_flags; QString m_name;\n"
+        "};\n"
+    )
+    
+    # Add other minimal headers as needed
+    file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/veyon-headers/FeatureMessage.h"
+        "#pragma once\n"
+        "#include <QVariantMap>\n"
+        "class FeatureMessage {\n"
+        "public:\n"
+        "    FeatureMessage(const QString& uid, int command) {}\n"
+        "    void addArgument(const QString& key, const QVariant& value) {}\n"
+        "    QVariant argument(const QString& key) const { return QVariant(); }\n"
+        "    QString featureUid() const { return QString(); }\n"
+        "    int command() const { return 0; }\n"
+        "};\n"
+    )
+    
+    file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/veyon-headers/VeyonServerInterface.h"
+        "#pragma once\n"
+        "class VeyonServerInterface {};\n"
+    )
+    
+    file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/veyon-headers/VeyonWorkerInterface.h"
+        "#pragma once\n"
+        "class VeyonWorkerInterface {};\n"
+    )
+    
+    file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/veyon-headers/ComputerControlInterface.h"
+        "#pragma once\n"
+        "#include <QList>\n"
+        "class ComputerControlInterface {};\n"
+        "typedef QList<ComputerControlInterface*> ComputerControlInterfaceList;\n"
+        "class MessageContext {};\n"
+    )
+endif()
+
+# Include mock headers
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/veyon-headers")
+
+# Create the plugin library
+add_library(veyon-chat-plugin SHARED
+    ${SOURCES}
+    ${HEADERS}
+    ${UI_FILES}
+    ${RESOURCES}
+)
+
+# Link libraries
+target_link_libraries(veyon-chat-plugin
+    Qt5::Core
+    Qt5::Widgets
+    Qt5::Network
+    Qt5::Multimedia
+)
+
+# Set plugin properties
+set_target_properties(veyon-chat-plugin PROPERTIES
+    PREFIX ""
+    SUFFIX ".dll"
+)
+
+# Windows-specific settings
+if(WIN32)
+    set_target_properties(veyon-chat-plugin PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/Release"
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/Debug"
+    )
+endif()
