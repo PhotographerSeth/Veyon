@@ -1,0 +1,219 @@
+name: Build Veyon Chat Plugin for Windows
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+      
+    - name: Setup Qt (Corrected)
+      shell: powershell
+      run: |
+        Write-Host "Installing aqtinstall..."
+        python -m pip install --upgrade pip
+        python -m pip install aqtinstall
+        
+        Write-Host "Installing Qt 5.15.2 (base components only)..."
+        python -m aqt install-qt windows desktop 5.15.2 win64_msvc2019_64
+        
+        Write-Host "Setting up Qt environment..."
+        $QtPath = "$env:GITHUB_WORKSPACE\5.15.2\msvc2019_64"
+        echo "Qt5_DIR=$QtPath\lib\cmake\Qt5" >> $env:GITHUB_ENV
+        echo "$QtPath\bin" >> $env:GITHUB_PATH
+        
+        Write-Host "Verifying Qt installation..."
+        if (Test-Path "$QtPath\bin\qmake.exe") {
+          Write-Host "✅ Qt installed successfully at: $QtPath"
+          & "$QtPath\bin\qmake.exe" -version
+          
+          Write-Host "Available Qt modules:"
+          Get-ChildItem "$QtPath\lib\cmake" | Select-Object Name
+        } else {
+          Write-Host "❌ Qt installation failed"
+          Write-Host "Contents of workspace:"
+          Get-ChildItem $env:GITHUB_WORKSPACE -Recurse -Directory | Where-Object {$_.Name -like "*qt*" -or $_.Name -like "*5.15*"}
+          exit 1
+        }
+        
+    - name: Create build directory
+      run: mkdir build
+      
+    - name: Configure CMake
+      shell: powershell
+      run: |
+        cd build
+        $QtDir = $env:Qt5_DIR
+        Write-Host "Using Qt5_DIR: $QtDir"
+        
+        Write-Host "Running CMake configuration..."
+        cmake -G "Visual Studio 17 2022" -A x64 `
+          -DCMAKE_BUILD_TYPE=Release `
+          -DQt5_DIR="$QtDir" `
+          -DCMAKE_PREFIX_PATH="$env:GITHUB_WORKSPACE\5.15.2\msvc2019_64" `
+          ..
+          
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "❌ CMake configuration failed"
+          Write-Host "Available CMake files:"
+          Get-ChildItem "$env:GITHUB_WORKSPACE\5.15.2\msvc2019_64\lib\cmake" -Recurse | Where-Object {$_.Name -like "*.cmake"}
+          exit 1
+        }
+      
+    - name: Build plugin
+      shell: powershell
+      run: |
+        cd build
+        Write-Host "Building plugin..."
+        cmake --build . --config Release --parallel
+        
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "❌ Build failed"
+          Write-Host "Build directory contents:"
+          Get-ChildItem -Recurse . | Select-Object FullName
+          exit 1
+        }
+        
+    - name: Verify DLL creation
+      shell: powershell
+      run: |
+        Write-Host "Checking for DLL..."
+        $possiblePaths = @(
+          "build/Release/veyon-chat-plugin.dll",
+          "build/veyon-chat-plugin.dll",
+          "build/Release/Debug/veyon-chat-plugin.dll"
+        )
+        
+        $dllFound = $false
+        foreach ($path in $possiblePaths) {
+          if (Test-Path $path) {
+            Write-Host "✅ DLL found at: $path"
+            Get-Item $path | Select-Object Name, Length, LastWriteTime
+            $dllFound = $true
+            
+            # Copy to standard location for packaging
+            Copy-Item $path "veyon-chat-plugin.dll"
+            break
+          }
+        }
+        
+        if (-not $dllFound) {
+          Write-Host "❌ DLL not found in any expected location"
+          Write-Host "Searching entire build directory:"
+          Get-ChildItem -Recurse build -Include "*.dll", "*.exe" | Select-Object FullName, Length
+          exit 1
+        }
+      
+    - name: Create installation files
+      shell: powershell
+      run: |
+        Write-Host "Creating release package..."
+        New-Item -ItemType Directory -Path "release-package" -Force
+        
+        # Copy DLL (from root where we copied it in previous step)
+        if (Test-Path "veyon-chat-plugin.dll") {
+          Copy-Item "veyon-chat-plugin.dll" "release-package/"
+          Write-Host "✅ DLL copied to release package"
+        } else {
+          Write-Host "❌ DLL not found for packaging"
+          exit 1
+        }
+        
+    - name: Create install script
+      shell: powershell
+      run: |
+        $installContent = @(
+          '@echo off',
+          'echo Installing Veyon Chat Plugin...',
+          'if not exist "C:\Program Files\Veyon\plugins" mkdir "C:\Program Files\Veyon\plugins"',
+          'copy veyon-chat-plugin.dll "C:\Program Files\Veyon\plugins\"',
+          'if %errorlevel% equ 0 (',
+          '  echo ✅ Plugin installed successfully!',
+          '  echo Please restart Veyon Master and Service.',
+          ') else (',
+          '  echo ❌ Installation failed. Please check permissions.',
+          ')',
+          'pause'
+        )
+        
+        $installContent | Out-File -FilePath "release-package/install.bat" -Encoding ASCII
+        Write-Host "✅ Install script created"
+        
+    - name: Create README
+      shell: powershell
+      run: |
+        $readmeContent = @(
+          '# Veyon Chat Plugin - Windows Release',
+          '',
+          '## Installation Instructions',
+          '',
+          '1. Extract all files to a folder',
+          '2. Right-click install.bat and select "Run as administrator"',
+          '3. Restart Veyon Master application',
+          '4. Press F10 to open chat window',
+          '',
+          '## Features',
+          '',
+          '- Real-time chat between teacher and students',
+          '- F10 hotkey to open/close chat',
+          '- Global broadcast messages',
+          '- Private messaging',
+          '- Message timestamps',
+          '',
+          '## Files Included',
+          '',
+          '- veyon-chat-plugin.dll - The plugin file',
+          '- install.bat - Automated installation script',
+          '',
+          '## Requirements',
+          '',
+          '- Veyon 4.9.7 installed',
+          '- Windows 10/11',
+          '- Administrator privileges for installation',
+          '',
+          '## Support',
+          '',
+          'For issues or questions, visit:',
+          'https://github.com/PhotographerSeth/Veyon'
+        )
+        
+        $readmeContent | Out-File -FilePath "release-package/README.txt" -Encoding UTF8
+        Write-Host "✅ README created"
+        
+    - name: Create ZIP package
+      shell: powershell
+      run: |
+        Write-Host "Creating ZIP package..."
+        Compress-Archive -Path "release-package/*" -DestinationPath "veyon-chat-plugin-windows.zip" -Force
+        
+        Write-Host "✅ Package created successfully"
+        Write-Host "Package contents:"
+        Get-ChildItem "release-package" | Select-Object Name, Length
+        
+    - name: Upload plugin artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: veyon-chat-plugin-windows
+        path: |
+          release-package/veyon-chat-plugin.dll
+          release-package/install.bat
+          release-package/README.txt
+        retention-days: 90
+        
+    - name: Upload complete package
+      uses: actions/upload-artifact@v4
+      with:
+        name: veyon-chat-plugin-complete-package
+        path: veyon-chat-plugin-windows.zip
+        retention-days: 90
