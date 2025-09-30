@@ -6,7 +6,7 @@ project(veyon-chat-plugin VERSION 1.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Find Qt5 components (Core, Widgets, Network only - no multimedia needed)
+# Find Qt5 components (Core, Widgets, Network only)
 find_package(Qt5 REQUIRED COMPONENTS Core Widgets Network)
 
 # Enable Qt MOC, UIC, and RCC
@@ -120,11 +120,9 @@ public:
 include_directories("${MOCK_HEADERS_DIR}")
 include_directories(src)
 
-# Source files
+# Source files (ONLY the .cpp files that actually exist in your repository)
 set(SOURCES
     src/ChatFeaturePlugin.cpp
-    src/ChatMasterWidget.cpp
-    src/ChatClientWidget.cpp
     src/ChatMessage.cpp
     src/ChatSession.cpp
     src/ChatServiceClient.cpp
@@ -151,6 +149,231 @@ set(RESOURCES
     resources/chat.qrc
 )
 
+# Create the missing widget implementation files during build
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/ChatMasterWidget.cpp"
+"#include \"ChatMasterWidget.h\"
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QListWidget>
+#include <QTextEdit>
+#include <QLineEdit>
+#include <QPushButton>
+#include <QLabel>
+#include <QSplitter>
+#include <QComboBox>
+#include <QDateTime>
+
+ChatMasterWidget::ChatMasterWidget(QWidget* parent) : QWidget(parent) {
+    setupUi();
+}
+
+void ChatMasterWidget::setupUi() {
+    setWindowTitle(\"Veyon Chat - Master\");
+    resize(800, 600);
+    
+    auto* layout = new QVBoxLayout(this);
+    
+    // Top toolbar
+    auto* toolbarLayout = new QHBoxLayout();
+    m_priorityCombo = new QComboBox();
+    m_priorityCombo->addItems({\"Normal\", \"Urgent\", \"Announcement\"});
+    toolbarLayout->addWidget(new QLabel(\"Priority:\"));
+    toolbarLayout->addWidget(m_priorityCombo);
+    
+    m_clearButton = new QPushButton(\"Clear Chat\");
+    m_broadcastButton = new QPushButton(\"Broadcast to All\");
+    toolbarLayout->addWidget(m_clearButton);
+    toolbarLayout->addWidget(m_broadcastButton);
+    toolbarLayout->addStretch();
+    
+    layout->addLayout(toolbarLayout);
+    
+    // Main content
+    auto* splitter = new QSplitter(Qt::Horizontal, this);
+    
+    // Client list
+    auto* clientWidget = new QWidget();
+    auto* clientLayout = new QVBoxLayout(clientWidget);
+    clientLayout->addWidget(new QLabel(\"Connected Clients:\"));
+    m_clientList = new QListWidget();
+    clientLayout->addWidget(m_clientList);
+    
+    // Chat area
+    auto* chatWidget = new QWidget();
+    auto* chatLayout = new QVBoxLayout(chatWidget);
+    chatLayout->addWidget(new QLabel(\"Chat Messages:\"));
+    m_chatDisplay = new QTextEdit();
+    m_chatDisplay->setReadOnly(true);
+    chatLayout->addWidget(m_chatDisplay);
+    
+    auto* inputLayout = new QHBoxLayout();
+    m_messageInput = new QLineEdit();
+    m_messageInput->setPlaceholderText(\"Type your message here...\");
+    m_sendButton = new QPushButton(\"Send\");
+    inputLayout->addWidget(m_messageInput);
+    inputLayout->addWidget(m_sendButton);
+    chatLayout->addLayout(inputLayout);
+    
+    splitter->addWidget(clientWidget);
+    splitter->addWidget(chatWidget);
+    splitter->setSizes({200, 600});
+    
+    layout->addWidget(splitter);
+    
+    // Connect signals
+    connect(m_sendButton, &QPushButton::clicked, this, &ChatMasterWidget::onSendClicked);
+    connect(m_messageInput, &QLineEdit::returnPressed, this, &ChatMasterWidget::onSendClicked);
+    connect(m_broadcastButton, &QPushButton::clicked, this, &ChatMasterWidget::onBroadcastClicked);
+    connect(m_clearButton, &QPushButton::clicked, this, &ChatMasterWidget::onClearClicked);
+}
+
+void ChatMasterWidget::onSendClicked() {
+    QString text = m_messageInput->text().trimmed();
+    if (!text.isEmpty()) {
+        auto priority = static_cast<ChatMessage::Priority>(m_priorityCombo->currentIndex());
+        ChatMessage msg(\"master\", \"selected\", text, priority);
+        emit sendMessage(msg);
+        m_messageInput->clear();
+        
+        // Add to display
+        QString priorityText = m_priorityCombo->currentText();
+        m_chatDisplay->append(QString(\"[%1] [%2] Master: %3\")
+            .arg(QDateTime::currentDateTime().toString(\"hh:mm:ss\"))
+            .arg(priorityText)
+            .arg(text));
+    }
+}
+
+void ChatMasterWidget::onBroadcastClicked() {
+    QString text = m_messageInput->text().trimmed();
+    if (!text.isEmpty()) {
+        auto priority = static_cast<ChatMessage::Priority>(m_priorityCombo->currentIndex());
+        emit sendGlobalMessage(text, priority);
+        m_messageInput->clear();
+        
+        // Add to display
+        m_chatDisplay->append(QString(\"[%1] [BROADCAST] Master: %2\")
+            .arg(QDateTime::currentDateTime().toString(\"hh:mm:ss\"))
+            .arg(text));
+    }
+}
+
+void ChatMasterWidget::onClearClicked() {
+    m_chatDisplay->clear();
+    emit clearClientChat(\"all\");
+}
+
+void ChatMasterWidget::receiveMessage(const ChatMessage& message) {
+    QString priorityText;
+    switch(message.priority()) {
+        case ChatMessage::Urgent: priorityText = \"URGENT\"; break;
+        case ChatMessage::Announcement: priorityText = \"ANNOUNCEMENT\"; break;
+        default: priorityText = \"Normal\"; break;
+    }
+    
+    m_chatDisplay->append(QString(\"[%1] [%2] %3: %4\")
+        .arg(message.timestamp().toString(\"hh:mm:ss\"))
+        .arg(priorityText)
+        .arg(message.senderId())
+        .arg(message.content()));
+}
+
+void ChatMasterWidget::updateClientStatus(const QString& clientId, ChatSession::ClientStatus status) {
+    // Update client list with status indicators
+    for (int i = 0; i < m_clientList->count(); ++i) {
+        auto* item = m_clientList->item(i);
+        if (item->text().contains(clientId)) {
+            QString statusText;
+            switch(status) {
+                case ChatSession::Online: statusText = \"🟢\"; break;
+                case ChatSession::Away: statusText = \"🟡\"; break;
+                case ChatSession::Typing: statusText = \"✏️\"; break;
+                default: statusText = \"⚫\"; break;
+            }
+            item->setText(QString(\"%1 %2\").arg(statusText, clientId));
+            break;
+        }
+    }
+}
+")
+
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/ChatClientWidget.cpp"
+"#include \"ChatClientWidget.h\"
+#include <QVBoxLayout>
+#include <QTextEdit>
+#include <QLineEdit>
+#include <QPushButton>
+#include <QLabel>
+#include <QDateTime>
+
+ChatClientWidget::ChatClientWidget(QWidget* parent) : QWidget(parent) {
+    setupUi();
+}
+
+void ChatClientWidget::setupUi() {
+    setWindowTitle(\"Veyon Chat - Student\");
+    resize(400, 300);
+    
+    auto* layout = new QVBoxLayout(this);
+    layout->addWidget(new QLabel(\"Chat with Teacher:\"));
+    
+    m_chatDisplay = new QTextEdit();
+    m_chatDisplay->setReadOnly(true);
+    layout->addWidget(m_chatDisplay);
+    
+    auto* inputLayout = new QHBoxLayout();
+    m_messageInput = new QLineEdit();
+    m_messageInput->setPlaceholderText(\"Type your message to the teacher...\");
+    m_sendButton = new QPushButton(\"Send Message\");
+    inputLayout->addWidget(m_messageInput);
+    inputLayout->addWidget(m_sendButton);
+    layout->addLayout(inputLayout);
+    
+    connect(m_sendButton, &QPushButton::clicked, this, &ChatClientWidget::onSendClicked);
+    connect(m_messageInput, &QLineEdit::returnPressed, this, &ChatClientWidget::onSendClicked);
+}
+
+void ChatClientWidget::onSendClicked() {
+    QString text = m_messageInput->text().trimmed();
+    if (!text.isEmpty()) {
+        ChatMessage msg(\"student\", \"master\", text, ChatMessage::Normal);
+        emit sendMessage(msg);
+        m_messageInput->clear();
+        
+        // Add to display
+        m_chatDisplay->append(QString(\"[%1] You: %2\")
+            .arg(QDateTime::currentDateTime().toString(\"hh:mm:ss\"))
+            .arg(text));
+        
+        emit statusChanged(ChatSession::Online);
+    }
+}
+
+void ChatClientWidget::receiveMessage(const ChatMessage& message) {
+    QString priorityPrefix;
+    switch(message.priority()) {
+        case ChatMessage::Urgent: priorityPrefix = \"[URGENT] \"; break;
+        case ChatMessage::Announcement: priorityPrefix = \"[ANNOUNCEMENT] \"; break;
+        default: priorityPrefix = \"\"; break;
+    }
+    
+    m_chatDisplay->append(QString(\"[%1] %2Teacher: %3\")
+        .arg(message.timestamp().toString(\"hh:mm:ss\"))
+        .arg(priorityPrefix)
+        .arg(message.content()));
+}
+
+void ChatClientWidget::clearChat() {
+    m_chatDisplay->clear();
+}
+")
+
+# Add the generated widget implementations to sources
+list(APPEND SOURCES 
+    "${CMAKE_CURRENT_BINARY_DIR}/ChatMasterWidget.cpp"
+    "${CMAKE_CURRENT_BINARY_DIR}/ChatClientWidget.cpp"
+)
+
 # Create the plugin library
 add_library(veyon-chat-plugin SHARED
     ${SOURCES}
@@ -159,7 +382,7 @@ add_library(veyon-chat-plugin SHARED
     ${RESOURCES}
 )
 
-# Link Qt libraries (Core, Widgets, Network only)
+# Link Qt libraries
 target_link_libraries(veyon-chat-plugin
     Qt5::Core
     Qt5::Widgets
