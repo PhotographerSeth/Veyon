@@ -1,0 +1,12 @@
+<RCC>
+    <qresource prefix="/chat">
+        <file>icons/chat.png</file>
+        <file>icons/send.png</file>
+        <file>icons/clear.png</file>
+        <file>icons/broadcast.png</file>
+        <file>icons/online.png</file>
+        <file>icons/away.png</file>
+        <file>icons/typing.png</file>
+        <file>sounds/notification.wav</file>
+    </qresource>
+</RCC>
