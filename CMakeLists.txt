@@ -21,7 +21,7 @@ set(CMAKE_AUTOUIC_SEARCH_PATHS ui)
 set(MOCK_HEADERS_DIR "${CMAKE_CURRENT_BINARY_DIR}/mock-headers")
 file(MAKE_DIRECTORY "${MOCK_HEADERS_DIR}")
 
-# Create comprehensive mock Veyon headers
+# Create comprehensive mock Veyon headers with proper Qt interface declarations
 file(WRITE "${MOCK_HEADERS_DIR}/FeatureProviderInterface.h"
 "#pragma once
 #include <QObject>
@@ -89,6 +89,9 @@ public:
     virtual bool handleFeatureMessage(VeyonServerInterface&, const MessageContext&, const FeatureMessage&) = 0;
     virtual bool handleFeatureMessage(VeyonWorkerInterface&, const FeatureMessage&) = 0;
 };
+
+// Qt interface declaration for MOC
+Q_DECLARE_INTERFACE(FeatureProviderInterface, \"org.veyon.FeatureProviderInterface\")
 ")
 
 file(WRITE "${MOCK_HEADERS_DIR}/PluginInterface.h"
@@ -114,6 +117,9 @@ public:
     virtual QString shortName() const = 0;
     virtual void upgrade(const QVersionNumber&) = 0;
 };
+
+// Qt interface declaration for MOC
+Q_DECLARE_INTERFACE(PluginInterface, \"org.veyon.PluginInterface\")
 ")
 
 # Include mock headers
@@ -152,6 +158,8 @@ set(RESOURCES
 # Create the missing widget implementation files during build
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/ChatMasterWidget.cpp"
 "#include \"ChatMasterWidget.h\"
+#include \"ChatMessage.h\"
+#include \"ChatSession.h\"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QListWidget>
@@ -299,6 +307,8 @@ void ChatMasterWidget::updateClientStatus(const QString& clientId, ChatSession::
 
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/ChatClientWidget.cpp"
 "#include \"ChatClientWidget.h\"
+#include \"ChatMessage.h\"
+#include \"ChatSession.h\"
 #include <QVBoxLayout>
 #include <QTextEdit>
 #include <QLineEdit>
