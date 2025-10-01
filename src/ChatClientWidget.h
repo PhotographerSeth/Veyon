@@ -30,6 +30,7 @@
 #include <QShortcut>
 #include <QSoundEffect>
 #include "ChatMessage.h"
+#include "ChatSession.h"
 
 QT_BEGIN_NAMESPACE
 class QTextEdit;
