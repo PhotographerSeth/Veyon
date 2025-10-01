@@ -58,6 +58,7 @@ public:
     void addMessage(const ChatMessage& message);
     void clearHistory();
     void markAllAsRead();
+    bool updateMessageStatus(const QString& messageId, ChatMessage::Status status);
     
     // Utility
     QString statusString() const;

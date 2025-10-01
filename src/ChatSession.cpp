@@ -24,6 +24,8 @@
 
 #include "ChatSession.h"
 
+#include <utility>
+
 ChatSession::ChatSession() :
     m_status(ClientStatus::Online),
     m_lastActivity(QDateTime::currentDateTime()),
@@ -67,13 +69,44 @@ void ChatSession::clearHistory()
 void ChatSession::markAllAsRead()
 {
     m_unreadCount = 0;
-    
+
     // Update status of all messages to read
     for (auto& message : m_history) {
         if (message.status() != ChatMessage::Status::Read) {
             message.setStatus(ChatMessage::Status::Read);
         }
     }
+}
+
+bool ChatSession::updateMessageStatus(const QString& messageId, ChatMessage::Status status)
+{
+    bool updated = false;
+
+    for (auto& message : m_history) {
+        if (message.messageId() == messageId) {
+            message.setStatus(status);
+            updated = true;
+            break;
+        }
+    }
+
+    if (!updated) {
+        return false;
+    }
+
+    // Recalculate unread count to reflect the new status
+    int unread = 0;
+    for (const auto& message : std::as_const(m_history)) {
+        if (message.senderId() != QStringLiteral("master") &&
+            message.status() != ChatMessage::Status::Read) {
+            ++unread;
+        }
+    }
+
+    m_unreadCount = unread;
+    updateLastActivity();
+
+    return true;
 }
 
 QString ChatSession::statusString() const
