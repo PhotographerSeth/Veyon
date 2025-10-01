@@ -60,8 +60,12 @@ ChatClientWidget::ChatClientWidget(QWidget* parent) :
                 this, &ChatClientWidget::onTrayIconActivated);
     }
 
-    connect(m_notificationSound, &QSoundEffect::statusChanged, this, [this](QSoundEffect::Status){
-        playNotificationSound();
+    connect(m_notificationSound, &QSoundEffect::statusChanged, this, [this]() {
+        const auto status = m_notificationSound->status();
+
+        if (status == QSoundEffect::Ready || status == QSoundEffect::Null) {
+            playNotificationSound();
+        }
     });
 
     setWindowTitle(tr("Veyon Chat"));
