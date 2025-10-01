@@ -27,6 +27,7 @@
 #include <QObject>
 #include "ChatMessage.h"
 #include "ChatClientWidget.h"
+#include "ChatSession.h"
 
 class ChatServiceClient : public QObject
 {
