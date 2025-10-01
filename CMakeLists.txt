@@ -6,8 +6,8 @@ project(veyon-chat-plugin VERSION 1.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Find Qt5 components (Core, Widgets, Network only)
-find_package(Qt5 REQUIRED COMPONENTS Core Widgets Network)
+# Find Qt5 components (Core, Widgets, Network, Multimedia)
+find_package(Qt5 REQUIRED COMPONENTS Core Widgets Network Multimedia)
 
 # Enable Qt MOC, UIC, and RCC
 set(CMAKE_AUTOMOC ON)
@@ -421,6 +421,7 @@ target_link_libraries(veyon-chat-plugin
     Qt5::Core
     Qt5::Widgets
     Qt5::Network
+    Qt5::Multimedia
 )
 
 # Set plugin properties
@@ -442,5 +443,7 @@ message(STATUS "Building Veyon Chat Plugin v${PROJECT_VERSION}")
 message(STATUS "Qt5 Core: ${Qt5Core_VERSION}")
 message(STATUS "Qt5 Widgets: ${Qt5Widgets_VERSION}")
 message(STATUS "Qt5 Network: ${Qt5Network_VERSION}")
+message(STATUS "Qt5 Multimedia: ${Qt5Multimedia_VERSION}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "Compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
+
