@@ -3,8 +3,9 @@ cmake_minimum_required(VERSION 3.16)
 project(veyon-chat-plugin VERSION 1.0.0 LANGUAGES CXX)
 
 # Set C++ standard
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Find Qt5 components (Core, Widgets, Network, Multimedia)
 find_package(Qt5 REQUIRED COMPONENTS Core Widgets Network Multimedia)

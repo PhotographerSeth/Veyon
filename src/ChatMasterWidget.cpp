@@ -22,6 +22,7 @@
 #include <QTimer>
 #include <QUrl>
 #include <QVBoxLayout>
+#include <QtCore/QOverload>
 
 namespace {
 constexpr auto ORGANIZATION_NAME = "Veyon";
@@ -404,7 +405,10 @@ void ChatMasterWidget::setupUI()
     m_splitter->setStretchFactor(0, 1);
     m_splitter->setStretchFactor(1, 2);
 
-    connect(m_quickReplies, &QComboBox::currentIndexChanged, this, [this](int index) {
+    connect(m_quickReplies,
+            qOverload<int>(&QComboBox::currentIndexChanged),
+            this,
+            [this](int index) {
         if (index <= 0) {
             return;
         }

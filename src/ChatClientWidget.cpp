@@ -23,7 +23,6 @@ constexpr auto ORGANIZATION_NAME = "Veyon";
 constexpr auto APPLICATION_NAME = "ChatClient";
 constexpr auto SETTINGS_GEOMETRY = "geometry";
 constexpr auto SETTINGS_SOUND = "soundEnabled";
-constexpr auto CLIENT_ID = "client";
 constexpr auto MASTER_ID = "master";
 }
 
@@ -39,7 +38,7 @@ ChatClientWidget::ChatClientWidget(QWidget* parent) :
     m_typingTimer(new QTimer(this)),
     m_notificationSound(new QSoundEffect(this)),
     m_soundEnabled(true),
-    m_clientId(QStringLiteral(CLIENT_ID)),
+    m_clientId(QStringLiteral("client")),
     m_unreadCount(0)
 {
     setObjectName(QStringLiteral("ChatClientWidget"));
