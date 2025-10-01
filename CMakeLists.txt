@@ -67,31 +67,10 @@ file(WRITE "${MOCK_HEADERS_DIR}/FeatureProviderInterface.h"
 #include <QString>
 #include <QKeySequence>
 #include \"Feature.h\"
-
-class Computer {
-public:
-    QString hostAddress() const { return QString(); }
-};
-
-class ComputerControlInterface {
-public:
-    Computer computer() const { return Computer(); }
-    void sendFeatureMessage(const class FeatureMessage&, bool) {}
-};
-typedef QList<ComputerControlInterface*> ComputerControlInterfaceList;
-
-class MessageContext {};
-class VeyonServerInterface {};
-class VeyonWorkerInterface {};
-
-class FeatureMessage {
-public:
-    FeatureMessage(const QString& uid, int command) {}
-    void addArgument(const QString& key, const QVariant& value) {}
-    QVariant argument(const QString& key) const { return QVariant(); }
-    QString featureUid() const { return QString(); }
-    int command() const { return 0; }
-};
+#include \"FeatureMessage.h\"
+#include \"VeyonServerInterface.h\"
+#include \"VeyonWorkerInterface.h\"
+#include \"ComputerControlInterface.h\"
 
 class FeatureProviderInterface {
 public:
