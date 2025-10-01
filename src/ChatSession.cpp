@@ -52,7 +52,7 @@ void ChatSession::addMessage(const ChatMessage& message)
     updateLastActivity();
     
     // If this is an incoming message (not from master), increment unread count
-    if (message.senderId() != "master") {
+    if (message.senderId() != "master" && message.status() != ChatMessage::Status::Read) {
         m_unreadCount++;
     }
 }
