@@ -21,13 +21,9 @@ set(CMAKE_AUTOUIC_SEARCH_PATHS ui)
 set(MOCK_HEADERS_DIR "${CMAKE_CURRENT_BINARY_DIR}/mock-headers")
 file(MAKE_DIRECTORY "${MOCK_HEADERS_DIR}")
 
-# Create comprehensive mock Veyon headers with proper Qt interface declarations
-file(WRITE "${MOCK_HEADERS_DIR}/FeatureProviderInterface.h"
+# Create Feature.h mock header (missing from previous version)
+file(WRITE "${MOCK_HEADERS_DIR}/Feature.h"
 "#pragma once
-#include <QObject>
-#include <QVersionNumber>
-#include <QVariantMap>
-#include <QList>
 #include <QString>
 #include <QKeySequence>
 
@@ -40,20 +36,37 @@ public:
         Worker = 1024, Builtin = 4096 
     };
     
+    Feature() = default;
     Feature(Uid uid, int flags, QString name, QString displayName, 
             QString displayNameActive, QString description, 
             QString iconUrl, QKeySequence shortcut)
-        : m_uid(uid), m_flags(flags), m_name(name) {}
+        : m_uid(uid), m_flags(flags), m_name(name), m_displayName(displayName) {}
     
     Uid uid() const { return m_uid; }
+    int flags() const { return m_flags; }
+    QString name() const { return m_name; }
+    QString displayName() const { return m_displayName; }
     
 private:
     Uid m_uid;
-    int m_flags;
+    int m_flags = 0;
     QString m_name;
+    QString m_displayName;
 };
 
 typedef QList<Feature> FeatureList;
+")
+
+# Create comprehensive mock Veyon headers with proper Qt interface declarations
+file(WRITE "${MOCK_HEADERS_DIR}/FeatureProviderInterface.h"
+"#pragma once
+#include <QObject>
+#include <QVersionNumber>
+#include <QVariantMap>
+#include <QList>
+#include <QString>
+#include <QKeySequence>
+#include \"Feature.h\"
 
 class Computer {
 public:
@@ -155,7 +168,7 @@ set(RESOURCES
     resources/chat.qrc
 )
 
-# Create the missing widget implementation files during build
+# Create the missing widget implementation files during build (WITHOUT QSoundEffect)
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/ChatMasterWidget.cpp"
 "#include \"ChatMasterWidget.h\"
 #include \"ChatMessage.h\"
@@ -170,6 +183,7 @@ file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/ChatMasterWidget.cpp"
 #include <QSplitter>
 #include <QComboBox>
 #include <QDateTime>
+#include <QApplication>
 
 ChatMasterWidget::ChatMasterWidget(QWidget* parent) : QWidget(parent) {
     setupUi();
@@ -249,6 +263,9 @@ void ChatMasterWidget::onSendClicked() {
             .arg(QDateTime::currentDateTime().toString(\"hh:mm:ss\"))
             .arg(priorityText)
             .arg(text));
+            
+        // Simple beep instead of QSoundEffect
+        QApplication::beep();
     }
 }
 
@@ -284,19 +301,22 @@ void ChatMasterWidget::receiveMessage(const ChatMessage& message) {
         .arg(priorityText)
         .arg(message.senderId())
         .arg(message.content()));
+        
+    // Simple beep for notifications
+    QApplication::beep();
 }
 
 void ChatMasterWidget::updateClientStatus(const QString& clientId, ChatSession::ClientStatus status) {
     // Update client list with status indicators
     for (int i = 0; i < m_clientList->count(); ++i) {
         auto* item = m_clientList->item(i);
-        if (item->text().contains(clientId)) {
+        if (item && item->text().contains(clientId)) {
             QString statusText;
             switch(status) {
-                case ChatSession::Online: statusText = \"🟢\"; break;
-                case ChatSession::Away: statusText = \"🟡\"; break;
-                case ChatSession::Typing: statusText = \"✏️\"; break;
-                default: statusText = \"⚫\"; break;
+                case ChatSession::Online: statusText = \"[Online]\"; break;
+                case ChatSession::Away: statusText = \"[Away]\"; break;
+                case ChatSession::Typing: statusText = \"[Typing]\"; break;
+                default: statusText = \"[Offline]\"; break;
             }
             item->setText(QString(\"%1 %2\").arg(statusText, clientId));
             break;
@@ -315,6 +335,7 @@ file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/ChatClientWidget.cpp"
 #include <QPushButton>
 #include <QLabel>
 #include <QDateTime>
+#include <QApplication>
 
 ChatClientWidget::ChatClientWidget(QWidget* parent) : QWidget(parent) {
     setupUi();
@@ -371,6 +392,9 @@ void ChatClientWidget::receiveMessage(const ChatMessage& message) {
         .arg(message.timestamp().toString(\"hh:mm:ss\"))
         .arg(priorityPrefix)
         .arg(message.content()));
+        
+    // Simple beep for notifications instead of QSoundEffect
+    QApplication::beep();
 }
 
 void ChatClientWidget::clearChat() {
