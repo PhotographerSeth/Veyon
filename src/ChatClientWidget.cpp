@@ -11,6 +11,7 @@
 #include <QPushButton>
 #include <QSettings>
 #include <QShortcut>
+#include <QSoundEffect>
 #include <QSystemTrayIcon>
 #include <QTextCursor>
 #include <QTextEdit>
@@ -39,7 +40,7 @@ ChatClientWidget::ChatClientWidget(QWidget* parent) :
     m_typingTimer(new QTimer(this)),
     m_notificationSound(new QSoundEffect(this)),
     m_soundEnabled(true),
-    m_clientId(QStringLiteral(CLIENT_ID)),
+    m_clientId(QString::fromLatin1(CLIENT_ID)),
     m_unreadCount(0)
 {
     setObjectName(QStringLiteral("ChatClientWidget"));
