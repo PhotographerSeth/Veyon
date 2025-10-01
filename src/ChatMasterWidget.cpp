@@ -3,6 +3,7 @@
 #include <QApplication>
 #include <QAbstractItemView>
 #include <QAction>
+#include <QtCore/qobjectdefs.h>
 #include <QComboBox>
 #include <QDateTime>
 #include <QHBoxLayout>
