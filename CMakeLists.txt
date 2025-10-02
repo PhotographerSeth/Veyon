@@ -7,16 +7,14 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-find_package(Qt5 REQUIRED COMPONENTS Core Widgets Network Multimedia)
+# Qt 5/6 neutral finder
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Widgets Network Multimedia)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Network Multimedia)
 
-# Path to the real Veyon 4.9.7 source tree (provided by CI or your local env)
-set(VEYON_SOURCE_DIR "" CACHE PATH "Path to the Veyon sources (4.9.7)")
-if(NOT VEYON_SOURCE_DIR)
-  if(DEFINED ENV{VEYON_SOURCE_DIR})
-    set(VEYON_SOURCE_DIR $ENV{VEYON_SOURCE_DIR})
-  else()
-    message(FATAL_ERROR "Set VEYON_SOURCE_DIR to the path of the Veyon sources (4.9.7).")
-  endif()
+# Allow Actions (or local builds) to point at a checked-out Veyon tree
+set(VEYON_SRC_DIR "" CACHE PATH "Path to the Veyon sources")
+if(NOT DEFINED VEYON_SRC_DIR AND DEFINED ENV{VEYON_SRC_DIR})
+  set(VEYON_SRC_DIR "$ENV{VEYON_SRC_DIR}")
 endif()
 
 
@@ -30,6 +28,21 @@ set(CMAKE_AUTOUIC_SEARCH_PATHS ui)
 
 # Include project headers
 set(PROJECT_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
+
+# Collect plausible include roots for both old/new layouts
+set(_veyon_inc_candidates
+  "${VEYON_SRC_DIR}/plugins"              "${VEYON_SRC_DIR}/src/plugins"
+  "${VEYON_SRC_DIR}/core"                 "${VEYON_SRC_DIR}/src/core"
+  "${VEYON_SRC_DIR}/master"               "${VEYON_SRC_DIR}/src/master"
+  "${VEYON_SRC_DIR}/common"               "${VEYON_SRC_DIR}/src/common"
+  "${VEYON_SRC_DIR}/include"              "${VEYON_SRC_DIR}/src/include"
+)
+foreach(_d IN LISTS _veyon_inc_candidates)
+  if(EXISTS "${_d}")
+    list(APPEND VEYON_INCLUDE_DIRS "${_d}")
+  endif()
+endforeach()
+message(STATUS "Using Veyon includes: ${VEYON_INCLUDE_DIRS}")
 
 # Source files (ONLY the .cpp files that actually exist in your repository)
 set(SOURCES
@@ -77,13 +90,15 @@ add_library(veyon-chat-plugin SHARED
 # Use Veyon's real headers (interfaces live under src/ and src/plugins/)
 target_include_directories(veyon-chat-plugin PRIVATE
     ${PROJECT_INCLUDE_DIR}
-    ${VEYON_SOURCE_DIR}/src
-    ${VEYON_SOURCE_DIR}/src/plugins
+    ${VEYON_INCLUDE_DIRS}
 )
 
 # Link Qt and user32 (for global hotkey)
 target_link_libraries(veyon-chat-plugin PRIVATE
-    Qt5::Core Qt5::Widgets Qt5::Network Qt5::Multimedia
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Network
+    Qt${QT_VERSION_MAJOR}::Multimedia
     user32
 )
 
@@ -104,9 +119,10 @@ endif()
 
 # Print build information
 message(STATUS "Building Veyon Chat Plugin v${PROJECT_VERSION}")
-message(STATUS "Qt5 Core: ${Qt5Core_VERSION}")
-message(STATUS "Qt5 Widgets: ${Qt5Widgets_VERSION}")
-message(STATUS "Qt5 Network: ${Qt5Network_VERSION}")
-message(STATUS "Qt5 Multimedia: ${Qt5Multimedia_VERSION}")
+set(_qt_components Core Widgets Network Multimedia)
+foreach(_comp IN LISTS _qt_components)
+  string(CONCAT _qt_version_var "Qt" "${QT_VERSION_MAJOR}" "${_comp}" "_VERSION")
+  message(STATUS "Qt ${_comp}: ${${_qt_version_var}}")
+endforeach()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "Compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
