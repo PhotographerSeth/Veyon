@@ -31,7 +31,10 @@ jobs:
 
           # Install Qt 6 + needed modules
           python -m aqt install-qt windows desktop $env:QT_VERSION $env:QT_ARCH `
-            -m qtimageformats qtshadertools qt5compat qttools qtmultimedia
+            -m qtimageformats qtshadertools qt5compat qtmultimedia
+
+          # Log the available Qt modules for troubleshooting
+          python -m aqt list-qt windows desktop --modules $env:QT_VERSION $env:QT_ARCH
 
           $QtPath = "$env:GITHUB_WORKSPACE\$env:QT_VERSION\msvc2022_64"
           echo "Qt6_DIR=$QtPath\lib\cmake\Qt6" >> $env:GITHUB_ENV
