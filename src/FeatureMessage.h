@@ -1,37 +1,41 @@
 #pragma once
 
+#include <QHash>
 #include <QString>
 #include <QVariant>
 
 class FeatureMessage
 {
 public:
-    FeatureMessage(const QString& uid = QString(), int command = 0)
+    FeatureMessage(const QString& uid = QString(), int command = 0) :
+        m_featureUid(uid),
+        m_command(command)
     {
-        (void)uid;
-        (void)command;
     }
 
     void addArgument(const QString& key, const QVariant& value)
     {
-        (void)key;
-        (void)value;
+        m_arguments.insert(key, value);
     }
 
     QVariant argument(const QString& key) const
     {
-        (void)key;
-        return QVariant();
+        return m_arguments.value(key);
     }
 
     QString featureUid() const
     {
-        return QString();
+        return m_featureUid;
     }
 
     int command() const
     {
-        return 0;
+        return m_command;
     }
+
+private:
+    QString m_featureUid;
+    int m_command;
+    QHash<QString, QVariant> m_arguments;
 };
 

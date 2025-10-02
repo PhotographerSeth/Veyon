@@ -106,6 +106,11 @@ void ChatClientWidget::setMasterName(const QString& name)
     updateWindowTitle();
 }
 
+void ChatClientWidget::setClientId(const QString& clientId)
+{
+    m_clientId = clientId;
+}
+
 void ChatClientWidget::closeEvent(QCloseEvent* event)
 {
     saveSettings();

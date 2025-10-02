@@ -29,6 +29,9 @@
 #include "PluginInterface.h"
 #include "ChatMasterWidget.h"
 #include "ChatServiceClient.h"
+#include "ComputerControlInterface.h"
+
+class VeyonWorkerInterface;
 
 class ChatFeaturePlugin : public QObject, FeatureProviderInterface, PluginInterface
 {
@@ -80,7 +83,9 @@ private:
     
     ChatMasterWidget* m_masterWidget;
     ChatServiceClient* m_serviceClient;
-    
+    VeyonWorkerInterface* m_workerInterface;
+    ComputerControlInterfaceList m_activeControlInterfaces;
+
     void initializeFeatures();
     void setupKeyboardShortcuts();
 };

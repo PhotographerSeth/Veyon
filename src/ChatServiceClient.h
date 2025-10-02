@@ -45,6 +45,8 @@ public:
     void showChatWindow();
     void hideChatWindow();
 
+    QString clientId() const { return m_clientId; }
+
 signals:
     void sendMessage(const ChatMessage& message);
     void statusChanged(ChatSession::ClientStatus status);
