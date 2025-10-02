@@ -23,18 +23,24 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Setup Qt (Qt 6)
+      - name: Setup Qt (Qt 6 with modules)
         shell: powershell
         run: |
-          Write-Host "Installing aqtinstall..."
           python -m pip install --upgrade pip
           python -m pip install aqtinstall
-          Write-Host "Installing Qt $env:QT_VERSION ..."
-          python -m aqt install-qt windows desktop $env:QT_VERSION $env:QT_ARCH
+
+          # Install Qt 6 + needed modules
+          python -m aqt install-qt windows desktop $env:QT_VERSION $env:QT_ARCH `
+            -m qtimageformats qtshadertools qt5compat qttools qtmultimedia
+
           $QtPath = "$env:GITHUB_WORKSPACE\$env:QT_VERSION\msvc2022_64"
           echo "Qt6_DIR=$QtPath\lib\cmake\Qt6" >> $env:GITHUB_ENV
           echo "$QtPath\bin" >> $env:GITHUB_PATH
-          & "$QtPath\bin\qmake.exe" -query
+
+          # Quick sanity check so failures are obvious
+          if (-not (Test-Path "$QtPath\lib\cmake\Qt6Multimedia\Qt6MultimediaConfig.cmake")) {
+            Write-Error "Qt Multimedia module not found at $QtPath"; exit 1
+          }
 
       - name: Fetch Veyon ${{ env.VEYON_TAG }} headers
         shell: powershell
@@ -56,8 +62,10 @@ jobs:
           cd build
           cmake -G "Visual Studio 17 2022" -A x64 `
             -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_PREFIX_PATH="$env:GITHUB_WORKSPACE\$env:QT_VERSION\msvc2022_64" `
             -DQt6_DIR="$env:Qt6_DIR" `
             -DVEYON_SRC_DIR="$env:VEYON_SRC_DIR" `
+            -DQT_DEBUG_FIND_PACKAGE=ON `
             ..
 
       - name: Build plugin
