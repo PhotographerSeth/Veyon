@@ -235,6 +235,7 @@ void ChatClientWidget::setupTrayIcon()
 void ChatClientWidget::setupShortcuts()
 {
     m_f10Shortcut = new QShortcut(QKeySequence(Qt::Key_F10), this);
+    m_f10Shortcut->setContext(Qt::ApplicationShortcut);
     connect(m_f10Shortcut, &QShortcut::activated, this, [this]() {
         if (isHidden()) {
             showNormal();
