@@ -405,7 +405,7 @@ void ChatMasterWidget::setupUI()
     m_splitter->setStretchFactor(0, 1);
     m_splitter->setStretchFactor(1, 2);
 
-    connect(m_quickReplies, &QComboBox::currentIndexChanged, this, [this](int index) {
+    connect(m_quickReplies, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int index) {
         if (index <= 0) {
             return;
         }
