@@ -7,9 +7,8 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Qt 5/6 neutral finder
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Widgets Network Multimedia)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Network Multimedia)
+# Qt 5 toolchain (matches Veyon 4.9.x)
+find_package(Qt5 REQUIRED COMPONENTS Core Widgets Network Multimedia)
 
 # Allow Actions (or local builds) to point at a checked-out Veyon tree
 set(VEYON_SRC_DIR "" CACHE PATH "Path to the Veyon sources")
@@ -95,10 +94,10 @@ target_include_directories(veyon-chat-plugin PRIVATE
 
 # Link Qt and user32 (for global hotkey)
 target_link_libraries(veyon-chat-plugin PRIVATE
-    Qt${QT_VERSION_MAJOR}::Core
-    Qt${QT_VERSION_MAJOR}::Widgets
-    Qt${QT_VERSION_MAJOR}::Network
-    Qt${QT_VERSION_MAJOR}::Multimedia
+    Qt5::Core
+    Qt5::Widgets
+    Qt5::Network
+    Qt5::Multimedia
     user32
 )
 
@@ -119,10 +118,12 @@ endif()
 
 # Print build information
 message(STATUS "Building Veyon Chat Plugin v${PROJECT_VERSION}")
-set(_qt_components Core Widgets Network Multimedia)
-foreach(_comp IN LISTS _qt_components)
-  string(CONCAT _qt_version_var "Qt" "${QT_VERSION_MAJOR}" "${_comp}" "_VERSION")
-  message(STATUS "Qt ${_comp}: ${${_qt_version_var}}")
+# Report Qt component versions for diagnostics
+foreach(_comp IN ITEMS Core Widgets Network Multimedia)
+  string(CONCAT _qt_version_var "Qt5" "${_comp}" "_VERSION")
+  if(DEFINED ${_qt_version_var})
+    message(STATUS "Qt ${_comp}: ${${_qt_version_var}}")
+  endif()
 endforeach()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "Compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
