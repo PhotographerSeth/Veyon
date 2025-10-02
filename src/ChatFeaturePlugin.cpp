@@ -31,6 +31,8 @@
 #include <QShortcut>
 #include <QKeySequence>
 
+#include "ChatSignalListener.h"
+
 ChatFeaturePlugin::ChatFeaturePlugin(QObject* parent) :
     QObject(parent),
     m_chatFeature(chatFeatureUid(),
@@ -43,10 +45,15 @@ ChatFeaturePlugin::ChatFeaturePlugin(QObject* parent) :
                   QKeySequence(Qt::Key_F10)),
     m_masterWidget(nullptr),
     m_serviceClient(nullptr),
-    m_workerInterface(nullptr)
+    m_workerInterface(nullptr),
+    m_signalListener(new ChatSignalListener(this))
 {
     initializeFeatures();
     setupKeyboardShortcuts();
+
+    connect(m_signalListener, &ChatSignalListener::requestFromHost, this, [this](const QString& host) {
+        openOrFocusChatForHost(host);
+    });
 }
 
 Plugin::Uid ChatFeaturePlugin::uid() const
@@ -324,6 +331,33 @@ void ChatFeaturePlugin::openChatWindow()
     m_masterWidget->show();
     m_masterWidget->raise();
     m_masterWidget->activateWindow();
+}
+
+void ChatFeaturePlugin::openOrFocusChatForHost(const QString& hostName)
+{
+    openChatWindow();
+
+    if (!m_masterWidget) {
+        return;
+    }
+
+    QString targetId = hostName;
+
+    for (ComputerControlInterface* controlInterface : m_activeControlInterfaces) {
+        if (!controlInterface) {
+            continue;
+        }
+
+        const QString hostAddress = controlInterface->computer().hostAddress();
+        if (!hostAddress.isEmpty() && hostAddress.compare(hostName, Qt::CaseInsensitive) == 0) {
+            targetId = hostAddress;
+            break;
+        }
+    }
+
+    if (!targetId.isEmpty()) {
+        m_masterWidget->focusClient(targetId);
+    }
 }
 
 void ChatFeaturePlugin::initializeFeatures()

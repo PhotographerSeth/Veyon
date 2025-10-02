@@ -26,9 +26,12 @@
 #include <QHostInfo>
 #include <QApplication>
 
+#include "ChatRequestWorker.h"
+
 ChatServiceClient::ChatServiceClient(QObject* parent) :
     QObject(parent),
-    m_clientWidget(nullptr)
+    m_clientWidget(nullptr),
+    m_requestWorker(new ChatRequestWorker(this))
 {
     initializeClient();
 }

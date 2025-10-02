@@ -29,6 +29,8 @@
 #include "ChatClientWidget.h"
 #include "ChatSession.h"
 
+class ChatRequestWorker;
+
 class ChatServiceClient : public QObject
 {
     Q_OBJECT
@@ -58,7 +60,8 @@ private slots:
 private:
     void initializeClient();
     QString getClientId() const;
-    
+
     ChatClientWidget* m_clientWidget;
     QString m_clientId;
+    ChatRequestWorker* m_requestWorker;
 };

@@ -55,6 +55,7 @@ public:
     void addClient(const QString& clientId, const QString& clientName);
     void removeClient(const QString& clientId);
     void updateClientStatus(const QString& clientId, ChatSession::ClientStatus status);
+    void focusClient(const QString& clientId);
     
     // Message handling
     void receiveMessage(const ChatMessage& message);

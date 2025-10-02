@@ -32,6 +32,7 @@
 #include "ComputerControlInterface.h"
 
 class VeyonWorkerInterface;
+class ChatSignalListener;
 
 class ChatFeaturePlugin : public QObject, FeatureProviderInterface, PluginInterface
 {
@@ -84,8 +85,10 @@ private:
     ChatMasterWidget* m_masterWidget;
     ChatServiceClient* m_serviceClient;
     VeyonWorkerInterface* m_workerInterface;
+    ChatSignalListener* m_signalListener;
     ComputerControlInterfaceList m_activeControlInterfaces;
 
     void initializeFeatures();
     void setupKeyboardShortcuts();
+    void openOrFocusChatForHost(const QString& hostName);
 };
