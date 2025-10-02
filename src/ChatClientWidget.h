@@ -50,9 +50,10 @@ public:
     // Message handling
     void receiveMessage(const ChatMessage& message);
     void clearChat();
-    
+
     // Settings
     void setMasterName(const QString& name);
+    void setClientId(const QString& clientId);
     QString masterName() const { return m_masterName; }
 
 signals:

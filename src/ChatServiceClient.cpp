@@ -94,10 +94,11 @@ void ChatServiceClient::initializeClient()
     if (m_clientWidget) {
         return;
     }
-    
+
     m_clientId = getClientId();
     m_clientWidget = new ChatClientWidget();
-    
+    m_clientWidget->setClientId(m_clientId);
+
     // Connect signals
     connect(m_clientWidget, &ChatClientWidget::sendMessage,
             this, &ChatServiceClient::onClientMessageSent);

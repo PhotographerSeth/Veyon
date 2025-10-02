@@ -42,7 +42,8 @@ ChatFeaturePlugin::ChatFeaturePlugin(QObject* parent) :
                   QStringLiteral(":/chat/icons/chat.png"),
                   QKeySequence(Qt::Key_F10)),
     m_masterWidget(nullptr),
-    m_serviceClient(nullptr)
+    m_serviceClient(nullptr),
+    m_workerInterface(nullptr)
 {
     initializeFeatures();
     setupKeyboardShortcuts();
@@ -103,10 +104,12 @@ bool ChatFeaturePlugin::controlFeature(Feature::Uid featureUid, Operation operat
 
     switch (operation) {
         case Operation::Start:
+            m_activeControlInterfaces = computerControlInterfaces;
             openChatWindow();
             return true;
 
         case Operation::Stop:
+            m_activeControlInterfaces.clear();
             if (m_masterWidget) {
                 m_masterWidget->close();
             }
@@ -206,8 +209,6 @@ bool ChatFeaturePlugin::handleFeatureMessage(VeyonServerInterface& server,
 
 bool ChatFeaturePlugin::handleFeatureMessage(VeyonWorkerInterface& worker, const FeatureMessage& message)
 {
-    Q_UNUSED(worker)
-
     if (message.featureUid() != chatFeatureUid()) {
         return false;
     }
@@ -215,7 +216,31 @@ bool ChatFeaturePlugin::handleFeatureMessage(VeyonWorkerInterface& worker, const
     // Initialize service client if not already done
     if (!m_serviceClient) {
         m_serviceClient = new ChatServiceClient(this);
+        connect(m_serviceClient, &ChatServiceClient::sendMessage,
+                this, [this](const ChatMessage& chatMessage) {
+                    if (!m_workerInterface) {
+                        return;
+                    }
+
+                    FeatureMessage featureMessage(chatFeatureUid(), ReceiveMessage);
+                    featureMessage.addArgument(QStringLiteral("message"), chatMessage.toJson());
+                    m_workerInterface->sendFeatureMessage(featureMessage);
+                });
+
+        connect(m_serviceClient, &ChatServiceClient::statusChanged,
+                this, [this](ChatSession::ClientStatus status) {
+                    if (!m_workerInterface) {
+                        return;
+                    }
+
+                    FeatureMessage featureMessage(chatFeatureUid(), UpdateStatus);
+                    featureMessage.addArgument(QStringLiteral("clientId"), m_serviceClient->clientId());
+                    featureMessage.addArgument(QStringLiteral("status"), static_cast<int>(status));
+                    m_workerInterface->sendFeatureMessage(featureMessage);
+                });
     }
+
+    m_workerInterface = &worker;
 
     const auto command = static_cast<Commands>(message.command());
 
@@ -248,36 +273,51 @@ void ChatFeaturePlugin::openChatWindow()
 {
     if (!m_masterWidget) {
         m_masterWidget = new ChatMasterWidget();
-        
+
         // Connect signals for message handling
         connect(m_masterWidget, &ChatMasterWidget::sendMessage,
                 this, [this](const ChatMessage& message) {
-                    // Send message via feature system
-                    QVariantMap arguments;
-                    arguments["command"] = SendMessage;
-                    arguments["message"] = message.toJson();
-                    
-                    // This would typically be called through the feature control system
-                    // For now, we'll emit a signal or use another mechanism
+                    for (auto* controlInterface : m_activeControlInterfaces) {
+                        if (!controlInterface) {
+                            continue;
+                        }
+
+                        FeatureMessage featureMessage(chatFeatureUid(), SendMessage);
+                        featureMessage.addArgument(QStringLiteral("message"), message.toJson());
+                        controlInterface->sendFeatureMessage(featureMessage, false);
+                    }
                 });
-        
+
         connect(m_masterWidget, &ChatMasterWidget::sendGlobalMessage,
                 this, [this](const QString& content, ChatMessage::Priority priority) {
-                    QVariantMap arguments;
-                    arguments["command"] = GlobalBroadcast;
-                    arguments["content"] = content;
-                    arguments["priority"] = static_cast<int>(priority);
-                    
-                    // Handle global broadcast
+                    ChatMessage broadcast(QStringLiteral("master"), QStringLiteral("all"), content, priority);
+
+                    for (auto* controlInterface : m_activeControlInterfaces) {
+                        if (!controlInterface) {
+                            continue;
+                        }
+
+                        FeatureMessage featureMessage(chatFeatureUid(), GlobalBroadcast);
+                        featureMessage.addArgument(QStringLiteral("message"), broadcast.toJson());
+                        controlInterface->sendFeatureMessage(featureMessage, false);
+                    }
                 });
-        
+
         connect(m_masterWidget, &ChatMasterWidget::clearClientChat,
                 this, [this](const QString& clientId) {
-                    QVariantMap arguments;
-                    arguments["command"] = ClearChat;
-                    arguments["clientId"] = clientId;
-                    
-                    // Handle clear chat
+                    for (auto* controlInterface : m_activeControlInterfaces) {
+                        if (!controlInterface) {
+                            continue;
+                        }
+
+                        if (!clientId.isEmpty() && controlInterface->computer().hostAddress() != clientId) {
+                            continue;
+                        }
+
+                        FeatureMessage featureMessage(chatFeatureUid(), ClearChat);
+                        featureMessage.addArgument(QStringLiteral("clientId"), clientId);
+                        controlInterface->sendFeatureMessage(featureMessage, false);
+                    }
                 });
     }
 
