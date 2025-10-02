@@ -17,106 +17,23 @@ set(CMAKE_AUTORCC ON)
 # Set UI files directory
 set(CMAKE_AUTOUIC_SEARCH_PATHS ui)
 
-# Create mock Veyon headers directory
-set(MOCK_HEADERS_DIR "${CMAKE_CURRENT_BINARY_DIR}/mock-headers")
-file(MAKE_DIRECTORY "${MOCK_HEADERS_DIR}")
+# Configure Veyon SDK paths
+set(VEYON_SDK_ROOT "C:/src/veyon-5.1.0" CACHE PATH "Root directory of the installed Veyon SDK")
+set(VEYON_SDK_INCLUDE_DIR "${VEYON_SDK_ROOT}/src" CACHE PATH "Path to the Veyon SDK core headers")
+set(VEYON_SDK_PLUGIN_INCLUDE_DIR "${VEYON_SDK_ROOT}/src/plugins" CACHE PATH "Path to the Veyon SDK plugin headers")
+set(VEYON_SDK_LIBRARY_DIR "${VEYON_SDK_ROOT}/build" CACHE PATH "Path containing the compiled Veyon SDK libraries")
 
-# Create Feature.h mock header (missing from previous version)
-file(WRITE "${MOCK_HEADERS_DIR}/Feature.h"
-"#pragma once
-#include <QString>
-#include <QKeySequence>
+if(NOT EXISTS "${VEYON_SDK_INCLUDE_DIR}")
+    message(FATAL_ERROR "Veyon SDK include directory not found: ${VEYON_SDK_INCLUDE_DIR}. Please adjust VEYON_SDK_INCLUDE_DIR to point to the installed Veyon sources.")
+endif()
 
-class Feature {
-public:
-    typedef QString Uid;
-    enum Flag { 
-        None = 0, Mode = 1, Action = 2, Session = 4, Meta = 8, 
-        Option = 16, Checked = 32, Master = 256, Service = 512, 
-        Worker = 1024, Builtin = 4096 
-    };
-    
-    Feature() = default;
-    Feature(Uid uid, int flags, QString name, QString displayName, 
-            QString displayNameActive, QString description, 
-            QString iconUrl, QKeySequence shortcut)
-        : m_uid(uid), m_flags(flags), m_name(name), m_displayName(displayName) {}
-    
-    Uid uid() const { return m_uid; }
-    int flags() const { return m_flags; }
-    QString name() const { return m_name; }
-    QString displayName() const { return m_displayName; }
-    
-private:
-    Uid m_uid;
-    int m_flags = 0;
-    QString m_name;
-    QString m_displayName;
-};
+if(NOT EXISTS "${VEYON_SDK_PLUGIN_INCLUDE_DIR}")
+    message(FATAL_ERROR "Veyon SDK plugin include directory not found: ${VEYON_SDK_PLUGIN_INCLUDE_DIR}. Please adjust VEYON_SDK_PLUGIN_INCLUDE_DIR to point to the installed Veyon plugin interfaces.")
+endif()
 
-typedef QList<Feature> FeatureList;
-")
-
-# Create comprehensive mock Veyon headers with proper Qt interface declarations
-file(WRITE "${MOCK_HEADERS_DIR}/FeatureProviderInterface.h"
-"#pragma once
-#include <QObject>
-#include <QVersionNumber>
-#include <QVariantMap>
-#include <QList>
-#include <QString>
-#include <QKeySequence>
-#include \"Feature.h\"
-#include \"FeatureMessage.h\"
-#include \"VeyonServerInterface.h\"
-#include \"VeyonWorkerInterface.h\"
-#include \"ComputerControlInterface.h\"
-
-class FeatureProviderInterface {
-public:
-    enum Operation { Start, Stop };
-    virtual ~FeatureProviderInterface() = default;
-    virtual const FeatureList& featureList() const = 0;
-    virtual bool controlFeature(Feature::Uid, Operation, const QVariantMap&, const ComputerControlInterfaceList&) = 0;
-    virtual bool handleFeatureMessage(VeyonServerInterface&, const MessageContext&, const FeatureMessage&) = 0;
-    virtual bool handleFeatureMessage(VeyonWorkerInterface&, const FeatureMessage&) = 0;
-};
-
-// Qt interface declaration for MOC
-Q_DECLARE_INTERFACE(FeatureProviderInterface, \"org.veyon.FeatureProviderInterface\")
-")
-
-file(WRITE "${MOCK_HEADERS_DIR}/PluginInterface.h"
-"#pragma once
-#include <QObject>
-#include <QVersionNumber>
-#include <QString>
-
-class Plugin {
-public:
-    typedef QString Uid;
-};
-
-class PluginInterface {
-public:
-    virtual ~PluginInterface() = default;
-    virtual Plugin::Uid uid() const = 0;
-    virtual QVersionNumber version() const = 0;
-    virtual QString name() const = 0;
-    virtual QString description() const = 0;
-    virtual QString vendor() const = 0;
-    virtual QString copyright() const = 0;
-    virtual QString shortName() const = 0;
-    virtual void upgrade(const QVersionNumber&) = 0;
-};
-
-// Qt interface declaration for MOC
-Q_DECLARE_INTERFACE(PluginInterface, \"org.veyon.PluginInterface\")
-")
-
-# Include mock headers
-include_directories("${MOCK_HEADERS_DIR}")
-include_directories(src)
+if(NOT EXISTS "${VEYON_SDK_LIBRARY_DIR}")
+    message(FATAL_ERROR "Veyon SDK library directory not found: ${VEYON_SDK_LIBRARY_DIR}. Please adjust VEYON_SDK_LIBRARY_DIR to point to the directory containing the compiled Veyon libraries.")
+endif()
 
 # Source files (ONLY the .cpp files that actually exist in your repository)
 set(SOURCES
@@ -157,12 +74,31 @@ add_library(veyon-chat-plugin SHARED
     ${RESOURCES}
 )
 
+target_include_directories(veyon-chat-plugin
+    PRIVATE
+        src
+        ${VEYON_SDK_INCLUDE_DIR}
+        ${VEYON_SDK_PLUGIN_INCLUDE_DIR}
+)
+
+target_link_directories(veyon-chat-plugin
+    PRIVATE
+        ${VEYON_SDK_LIBRARY_DIR}
+)
+
+set(VEYON_SDK_LIBRARIES
+    "VeyonCore;VeyonMaster;VeyonService;VeyonWorker;VeyonComputerControl"
+    CACHE STRING "Semicolon-separated list of Veyon SDK libraries required by the plugin"
+)
+
 # Link Qt libraries
 target_link_libraries(veyon-chat-plugin
-    Qt5::Core
-    Qt5::Widgets
-    Qt5::Network
-    Qt5::Multimedia
+    PRIVATE
+        Qt5::Core
+        Qt5::Widgets
+        Qt5::Network
+        Qt5::Multimedia
+        ${VEYON_SDK_LIBRARIES}
 )
 
 # Set plugin properties
