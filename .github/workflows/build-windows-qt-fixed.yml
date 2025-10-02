@@ -66,20 +66,22 @@ jobs:
           $dll = Get-ChildItem -Recurse build -Filter veyon-chat-plugin.dll | Select-Object -First 1
           if (-not $dll) { Write-Error "DLL not found"; exit 1 }
           Copy-Item $dll.FullName "release-package\veyon-chat-plugin.dll"
-          @"
-@echo off
-echo Installing Veyon Chat Plugin...
-if not exist "C:\Program Files\Veyon\plugins" mkdir "C:\Program Files\Veyon\plugins"
-copy /Y veyon-chat-plugin.dll "C:\Program Files\Veyon\plugins\"
-echo Done. Restart Veyon Master/Service.
-"@ | Out-File -FilePath "release-package\install.bat" -Encoding ASCII
-          @"
-# Veyon Chat Plugin - Windows (for Veyon 4.9.7)
-
-1) Run `install.bat` as Administrator
-2) Restart **Veyon Service** (clients) and **Veyon Master** (teacher)
-3) Open Veyon and verify the plugin appears under Plugins
-"@ | Out-File -FilePath "release-package\README.txt" -Encoding UTF8
+          $installScript = @(
+            '@echo off',
+            'echo Installing Veyon Chat Plugin...',
+            'if not exist "C:\Program Files\Veyon\plugins" mkdir "C:\Program Files\Veyon\plugins"',
+            'copy /Y veyon-chat-plugin.dll "C:\Program Files\Veyon\plugins\"',
+            'echo Done. Restart Veyon Master/Service.'
+          )
+          Set-Content -Path "release-package\install.bat" -Value $installScript -Encoding ASCII
+          $readme = @(
+            '# Veyon Chat Plugin - Windows (for Veyon 4.9.7)',
+            '',
+            '1) Run `install.bat` as Administrator',
+            '2) Restart **Veyon Service** (clients) and **Veyon Master** (teacher)',
+            '3) Open Veyon and verify the plugin appears under Plugins'
+          )
+          Set-Content -Path "release-package\README.txt" -Value $readme -Encoding UTF8
           Compress-Archive -Path "release-package\*" -DestinationPath "veyon-chat-plugin-windows.zip" -Force
 
       - name: Upload artifacts
