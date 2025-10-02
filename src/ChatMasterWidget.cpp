@@ -137,6 +137,33 @@ void ChatMasterWidget::updateClientStatus(const QString& clientId, ChatSession::
     updateClientList();
 }
 
+void ChatMasterWidget::focusClient(const QString& clientId)
+{
+    if (clientId.isEmpty()) {
+        return;
+    }
+
+    if (!m_sessions.contains(clientId)) {
+        ChatSession session(clientId);
+        session.setClientName(clientId);
+        m_sessions.insert(clientId, session);
+    }
+
+    m_currentClientId = clientId;
+    updateClientList();
+
+    for (int i = 0; i < m_clientList->count(); ++i) {
+        if (QListWidgetItem* item = m_clientList->item(i)) {
+            if (item->data(Qt::UserRole).toString().compare(clientId, Qt::CaseInsensitive) == 0) {
+                m_clientList->setCurrentItem(item);
+                break;
+            }
+        }
+    }
+
+    updateChatDisplay();
+}
+
 void ChatMasterWidget::receiveMessage(const ChatMessage& message)
 {
     const QString clientId = message.senderId();

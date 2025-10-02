@@ -126,6 +126,8 @@ set(SOURCES
     src/ChatMessage.cpp
     src/ChatSession.cpp
     src/ChatServiceClient.cpp
+    src/ChatSignalListener.cpp
+    src/ChatRequestWorker.cpp
 )
 
 # Header files (for MOC)
@@ -136,6 +138,8 @@ set(HEADERS
     src/ChatMessage.h
     src/ChatSession.h
     src/ChatServiceClient.h
+    src/ChatSignalListener.h
+    src/ChatRequestWorker.h
 )
 
 # UI files
