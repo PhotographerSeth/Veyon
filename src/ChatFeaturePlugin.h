@@ -40,8 +40,8 @@ namespace Veyon
 class FeatureProviderInterface;
 }
 #  define VEYON_FEATUREPROVIDERINTERFACE_IID "io.veyon.Veyon.FeatureProviderInterface/1.0"
-Q_DECLARE_INTERFACE(Veyon::FeatureProviderInterface, VEYON_FEATUREPROVIDERINTERFACE_IID)
 #endif
+Q_DECLARE_INTERFACE(Veyon::FeatureProviderInterface, VEYON_FEATUREPROVIDERINTERFACE_IID)
 
 #ifndef VEYON_PLUGIN_INTERFACE_IID
 namespace Veyon
@@ -49,8 +49,8 @@ namespace Veyon
 class PluginInterface;
 }
 #  define VEYON_PLUGIN_INTERFACE_IID "io.veyon.Veyon.PluginInterface/1.0"
-Q_DECLARE_INTERFACE(Veyon::PluginInterface, VEYON_PLUGIN_INTERFACE_IID)
 #endif
+Q_DECLARE_INTERFACE(Veyon::PluginInterface, VEYON_PLUGIN_INTERFACE_IID)
 
 #include "ChatMasterWidget.h"
 #include "ChatServiceClient.h"
