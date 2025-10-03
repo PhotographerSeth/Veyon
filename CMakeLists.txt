@@ -2,12 +2,110 @@ cmake_minimum_required(VERSION 3.16)
 
 project(veyon-chat-plugin VERSION 1.0.0 LANGUAGES CXX)
 
-# Set C++ standard
+# Require C++17 (Qt 5.x is fine with this)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Find Qt5 components (Core, Widgets, Network, Multimedia)
+# Qt 5.15.x to match Veyon 4.9.7
 find_package(Qt5 REQUIRED COMPONENTS Core Widgets Network Multimedia)
+
+# ---- Veyon headers (from a local checkout of v4.9.7) ----
+# Pass -DVEYON_SRC_DIR=... from the GitHub Actions configure step
+set(VEYON_SRC_DIR "" CACHE PATH "Path to the Veyon 4.9.7 source tree")
+
+if(NOT VEYON_SRC_DIR)
+  message(FATAL_ERROR "Set -DVEYON_SRC_DIR to a Veyon v4.9.7 checkout (e.g. ${CMAKE_SOURCE_DIR}/veyon-src)")
+endif()
+
+# Find where the headers actually live in that tree
+find_path(VEYON_FEATURE_DIR
+  NAMES Feature.h
+  HINTS ${VEYON_SRC_DIR}
+  PATH_SUFFIXES src src/plugins src/core plugins core include include/veyon
+  NO_DEFAULT_PATH
+)
+find_path(VEYON_PLUGINIFACE_DIR
+  NAMES PluginInterface.h
+  HINTS ${VEYON_SRC_DIR}
+  PATH_SUFFIXES src src/plugins src/core plugins core include include/veyon
+  NO_DEFAULT_PATH
+)
+find_path(VEYON_FEATUREPROV_DIR
+  NAMES FeatureProviderInterface.h
+  HINTS ${VEYON_SRC_DIR}
+  PATH_SUFFIXES src src/plugins src/core plugins core include include/veyon
+  NO_DEFAULT_PATH
+)
+find_path(VEYON_FEATUREMSG_DIR
+  NAMES FeatureMessage.h
+  HINTS ${VEYON_SRC_DIR}
+  PATH_SUFFIXES src src/plugins src/core plugins core include include/veyon
+  NO_DEFAULT_PATH
+)
+find_path(VEYON_SERVERIFACE_DIR
+  NAMES VeyonServerInterface.h
+  HINTS ${VEYON_SRC_DIR}
+  PATH_SUFFIXES src src/master src/server master server include include/veyon
+  NO_DEFAULT_PATH
+)
+find_path(VEYON_WORKERIFACE_DIR
+  NAMES VeyonWorkerInterface.h
+  HINTS ${VEYON_SRC_DIR}
+  PATH_SUFFIXES src src/service src/worker service worker include include/veyon
+  NO_DEFAULT_PATH
+)
+find_path(VEYON_COMPUTERCONTROL_DIR
+  NAMES ComputerControlInterface.h
+  HINTS ${VEYON_SRC_DIR}
+  PATH_SUFFIXES src src/master src/server master server include include/veyon
+  NO_DEFAULT_PATH
+)
+
+if(NOT VEYON_FEATURE_DIR)
+  message(FATAL_ERROR "Feature.h not found under ${VEYON_SRC_DIR}")
+endif()
+if(NOT VEYON_PLUGINIFACE_DIR)
+  message(FATAL_ERROR "PluginInterface.h not found under ${VEYON_SRC_DIR}")
+endif()
+if(NOT VEYON_FEATUREPROV_DIR)
+  message(FATAL_ERROR "FeatureProviderInterface.h not found under ${VEYON_SRC_DIR}")
+endif()
+if(NOT VEYON_FEATUREMSG_DIR)
+  message(FATAL_ERROR "FeatureMessage.h not found under ${VEYON_SRC_DIR}")
+endif()
+if(NOT VEYON_SERVERIFACE_DIR)
+  message(FATAL_ERROR "VeyonServerInterface.h not found under ${VEYON_SRC_DIR}")
+endif()
+if(NOT VEYON_WORKERIFACE_DIR)
+  message(FATAL_ERROR "VeyonWorkerInterface.h not found under ${VEYON_SRC_DIR}")
+endif()
+if(NOT VEYON_COMPUTERCONTROL_DIR)
+  message(FATAL_ERROR "ComputerControlInterface.h not found under ${VEYON_SRC_DIR}")
+endif()
+
+message(STATUS "Using Veyon headers:")
+message(STATUS "  Feature.h:                 ${VEYON_FEATURE_DIR}")
+message(STATUS "  PluginInterface.h:         ${VEYON_PLUGINIFACE_DIR}")
+message(STATUS "  FeatureProviderInterface.h:${VEYON_FEATUREPROV_DIR}")
+message(STATUS "  FeatureMessage.h:          ${VEYON_FEATUREMSG_DIR}")
+message(STATUS "  VeyonServerInterface.h:    ${VEYON_SERVERIFACE_DIR}")
+message(STATUS "  VeyonWorkerInterface.h:    ${VEYON_WORKERIFACE_DIR}")
+message(STATUS "  ComputerControlInterface.h:${VEYON_COMPUTERCONTROL_DIR}")
+
+# Add those include folders so #include \"Feature.h\" etc. resolve
+# (Keep your existing include dirs for your own sources/resources)
+include_directories(
+  ${VEYON_SRC_DIR}
+  ${VEYON_SRC_DIR}/src
+  ${VEYON_FEATURE_DIR}
+  ${VEYON_PLUGINIFACE_DIR}
+  ${VEYON_FEATUREPROV_DIR}
+  ${VEYON_FEATUREMSG_DIR}
+  ${VEYON_SERVERIFACE_DIR}
+  ${VEYON_WORKERIFACE_DIR}
+  ${VEYON_COMPUTERCONTROL_DIR}
+)
+
 
 # Enable Qt MOC, UIC, and RCC
 set(CMAKE_AUTOMOC ON)
@@ -17,106 +115,8 @@ set(CMAKE_AUTORCC ON)
 # Set UI files directory
 set(CMAKE_AUTOUIC_SEARCH_PATHS ui)
 
-# Create mock Veyon headers directory
-set(MOCK_HEADERS_DIR "${CMAKE_CURRENT_BINARY_DIR}/mock-headers")
-file(MAKE_DIRECTORY "${MOCK_HEADERS_DIR}")
-
-# Create Feature.h mock header (missing from previous version)
-file(WRITE "${MOCK_HEADERS_DIR}/Feature.h"
-"#pragma once
-#include <QString>
-#include <QKeySequence>
-
-class Feature {
-public:
-    typedef QString Uid;
-    enum Flag { 
-        None = 0, Mode = 1, Action = 2, Session = 4, Meta = 8, 
-        Option = 16, Checked = 32, Master = 256, Service = 512, 
-        Worker = 1024, Builtin = 4096 
-    };
-    
-    Feature() = default;
-    Feature(Uid uid, int flags, QString name, QString displayName, 
-            QString displayNameActive, QString description, 
-            QString iconUrl, QKeySequence shortcut)
-        : m_uid(uid), m_flags(flags), m_name(name), m_displayName(displayName) {}
-    
-    Uid uid() const { return m_uid; }
-    int flags() const { return m_flags; }
-    QString name() const { return m_name; }
-    QString displayName() const { return m_displayName; }
-    
-private:
-    Uid m_uid;
-    int m_flags = 0;
-    QString m_name;
-    QString m_displayName;
-};
-
-typedef QList<Feature> FeatureList;
-")
-
-# Create comprehensive mock Veyon headers with proper Qt interface declarations
-file(WRITE "${MOCK_HEADERS_DIR}/FeatureProviderInterface.h"
-"#pragma once
-#include <QObject>
-#include <QVersionNumber>
-#include <QVariantMap>
-#include <QList>
-#include <QString>
-#include <QKeySequence>
-#include \"Feature.h\"
-#include \"FeatureMessage.h\"
-#include \"VeyonServerInterface.h\"
-#include \"VeyonWorkerInterface.h\"
-#include \"ComputerControlInterface.h\"
-
-class FeatureProviderInterface {
-public:
-    enum Operation { Start, Stop };
-    virtual ~FeatureProviderInterface() = default;
-    virtual const FeatureList& featureList() const = 0;
-    virtual bool controlFeature(Feature::Uid, Operation, const QVariantMap&, const ComputerControlInterfaceList&) = 0;
-    virtual bool handleFeatureMessage(VeyonServerInterface&, const MessageContext&, const FeatureMessage&) = 0;
-    virtual bool handleFeatureMessage(VeyonWorkerInterface&, const FeatureMessage&) = 0;
-};
-
-// Qt interface declaration for MOC
-Q_DECLARE_INTERFACE(FeatureProviderInterface, \"org.veyon.FeatureProviderInterface\")
-")
-
-file(WRITE "${MOCK_HEADERS_DIR}/PluginInterface.h"
-"#pragma once
-#include <QObject>
-#include <QVersionNumber>
-#include <QString>
-
-class Plugin {
-public:
-    typedef QString Uid;
-};
-
-class PluginInterface {
-public:
-    virtual ~PluginInterface() = default;
-    virtual Plugin::Uid uid() const = 0;
-    virtual QVersionNumber version() const = 0;
-    virtual QString name() const = 0;
-    virtual QString description() const = 0;
-    virtual QString vendor() const = 0;
-    virtual QString copyright() const = 0;
-    virtual QString shortName() const = 0;
-    virtual void upgrade(const QVersionNumber&) = 0;
-};
-
-// Qt interface declaration for MOC
-Q_DECLARE_INTERFACE(PluginInterface, \"org.veyon.PluginInterface\")
-")
-
-# Include mock headers
-include_directories("${MOCK_HEADERS_DIR}")
-include_directories(src)
+# Include project headers
+set(PROJECT_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 # Source files (ONLY the .cpp files that actually exist in your repository)
 set(SOURCES
@@ -161,16 +161,23 @@ add_library(veyon-chat-plugin SHARED
     ${RESOURCES}
 )
 
-# Link Qt libraries
-target_link_libraries(veyon-chat-plugin
+# Use project headers
+target_include_directories(veyon-chat-plugin PRIVATE
+    ${PROJECT_INCLUDE_DIR}
+)
+
+# Link Qt and user32 (for global hotkey)
+target_link_libraries(veyon-chat-plugin PRIVATE
     Qt5::Core
     Qt5::Widgets
     Qt5::Network
     Qt5::Multimedia
+    user32
 )
 
 # Set plugin properties
 set_target_properties(veyon-chat-plugin PROPERTIES
+    OUTPUT_NAME "veyon-chat-plugin"
     PREFIX ""
     SUFFIX ".dll"
 )
@@ -185,9 +192,12 @@ endif()
 
 # Print build information
 message(STATUS "Building Veyon Chat Plugin v${PROJECT_VERSION}")
-message(STATUS "Qt5 Core: ${Qt5Core_VERSION}")
-message(STATUS "Qt5 Widgets: ${Qt5Widgets_VERSION}")
-message(STATUS "Qt5 Network: ${Qt5Network_VERSION}")
-message(STATUS "Qt5 Multimedia: ${Qt5Multimedia_VERSION}")
+# Report Qt component versions for diagnostics
+foreach(_comp IN ITEMS Core Widgets Network Multimedia)
+  string(CONCAT _qt_version_var "Qt5" "${_comp}" "_VERSION")
+  if(DEFINED ${_qt_version_var})
+    message(STATUS "Qt ${_comp}: ${${_qt_version_var}}")
+  endif()
+endforeach()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "Compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")

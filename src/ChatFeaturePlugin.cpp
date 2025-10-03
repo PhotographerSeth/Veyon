@@ -23,10 +23,6 @@
  */
 
 #include "ChatFeaturePlugin.h"
-#include "FeatureMessage.h"
-#include "VeyonServerInterface.h"
-#include "VeyonWorkerInterface.h"
-#include "ComputerControlInterface.h"
 #include <QApplication>
 #include <QShortcut>
 #include <QKeySequence>
