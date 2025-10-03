@@ -95,6 +95,8 @@ message(STATUS "  ComputerControlInterface.h:${VEYON_COMPUTERCONTROL_DIR}")
 # Add those include folders so #include \"Feature.h\" etc. resolve
 # (Keep your existing include dirs for your own sources/resources)
 include_directories(
+  ${VEYON_SRC_DIR}
+  ${VEYON_SRC_DIR}/src
   ${VEYON_FEATURE_DIR}
   ${VEYON_PLUGINIFACE_DIR}
   ${VEYON_FEATUREPROV_DIR}
