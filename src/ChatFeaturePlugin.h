@@ -32,6 +32,25 @@
 #include <VeyonWorkerInterface.h>
 
 #include <ComputerControlInterface.h>
+#include <QtPlugin>
+
+#ifndef VEYON_FEATUREPROVIDERINTERFACE_IID
+namespace Veyon
+{
+class FeatureProviderInterface;
+}
+#  define VEYON_FEATUREPROVIDERINTERFACE_IID "io.veyon.Veyon.FeatureProviderInterface/1.0"
+Q_DECLARE_INTERFACE(Veyon::FeatureProviderInterface, VEYON_FEATUREPROVIDERINTERFACE_IID)
+#endif
+
+#ifndef VEYON_PLUGIN_INTERFACE_IID
+namespace Veyon
+{
+class PluginInterface;
+}
+#  define VEYON_PLUGIN_INTERFACE_IID "io.veyon.Veyon.PluginInterface/1.0"
+Q_DECLARE_INTERFACE(Veyon::PluginInterface, VEYON_PLUGIN_INTERFACE_IID)
+#endif
 
 #include "ChatMasterWidget.h"
 #include "ChatServiceClient.h"
