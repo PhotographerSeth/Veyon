@@ -24,21 +24,37 @@
 
 #pragma once
 
-#include "FeatureProviderInterface.h"
-#include "Feature.h"
-#include "PluginInterface.h"
+#include <Feature.h>
+#include <FeatureMessage.h>
+#include <FeatureProviderInterface.h>
+#include <PluginInterface.h>
+#include <VeyonServerInterface.h>
+#include <VeyonWorkerInterface.h>
+
+#include <ComputerControlInterface.h>
+
 #include "ChatMasterWidget.h"
 #include "ChatServiceClient.h"
-#include "ComputerControlInterface.h"
 
-class VeyonWorkerInterface;
+using Feature = Veyon::Feature;
+using FeatureList = Veyon::FeatureList;
+using FeatureMessage = Veyon::FeatureMessage;
+using MessageContext = Veyon::MessageContext;
+using Plugin = Veyon::Plugin;
+using VeyonServerInterface = Veyon::VeyonServerInterface;
+using VeyonWorkerInterface = Veyon::VeyonWorkerInterface;
+using ComputerControlInterfaceList = Veyon::ComputerControlInterfaceList;
+using Operation = Veyon::FeatureProviderInterface::Operation;
+
 class ChatSignalListener;
 
-class ChatFeaturePlugin : public QObject, FeatureProviderInterface, PluginInterface
+class ChatFeaturePlugin : public QObject,
+                          public Veyon::FeatureProviderInterface,
+                          public Veyon::PluginInterface
 {
     Q_OBJECT
     Q_PLUGIN_METADATA(IID "io.veyon.Veyon.Plugins.ChatFeaturePlugin")
-    Q_INTERFACES(FeatureProviderInterface PluginInterface)
+    Q_INTERFACES(Veyon::FeatureProviderInterface Veyon::PluginInterface)
 
 public:
     ChatFeaturePlugin(QObject* parent = nullptr);
@@ -56,15 +72,20 @@ public:
 
     // FeatureProviderInterface
     const FeatureList& featureList() const override;
-    bool controlFeature(Feature::Uid featureUid, Operation operation,
-                       const QVariantMap& arguments,
-                       const ComputerControlInterfaceList& computerControlInterfaces) override;
+    bool controlFeature(Feature::Uid featureUid,
+                        Operation operation,
+                        const QVariantMap& arguments,
+                        const ComputerControlInterfaceList& computerControlInterfaces) override;
     bool handleFeatureMessage(VeyonServerInterface& server,
-                             const MessageContext& messageContext,
-                             const FeatureMessage& message) override;
-    bool handleFeatureMessage(VeyonWorkerInterface& worker, const FeatureMessage& message) override;
+                              const MessageContext& messageContext,
+                              const FeatureMessage& message) override;
+    bool handleFeatureMessage(VeyonWorkerInterface& worker,
+                              const FeatureMessage& message) override;
 
-    static Feature::Uid chatFeatureUid() { return QStringLiteral("a1b2c3d4-e5f6-7890-abcd-ef1234567890"); }
+    static Feature::Uid chatFeatureUid()
+    {
+        return QStringLiteral("a1b2c3d4-e5f6-7890-abcd-ef1234567890");
+    }
 
 private slots:
     void openChatWindow();
@@ -81,7 +102,7 @@ private:
 
     const Feature m_chatFeature;
     FeatureList m_features;
-    
+
     ChatMasterWidget* m_masterWidget;
     ChatServiceClient* m_serviceClient;
     VeyonWorkerInterface* m_workerInterface;

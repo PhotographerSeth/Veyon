@@ -88,8 +88,8 @@ add_library(veyon-chat-plugin SHARED
 
 # Use Veyon's real headers (interfaces live under src/ and src/plugins/)
 target_include_directories(veyon-chat-plugin PRIVATE
-    ${PROJECT_INCLUDE_DIR}
     ${VEYON_INCLUDE_DIRS}
+    ${PROJECT_INCLUDE_DIR}
 )
 
 # Link Qt and user32 (for global hotkey)
