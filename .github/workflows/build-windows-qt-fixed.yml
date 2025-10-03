@@ -11,7 +11,6 @@ env:
   VEYON_TAG: v4.9.7
   QT_VER: "5.15.2"
   QT_ARCH: "win64_msvc2019_64"
-  QT_MODULES: "qtmultimedia qtimageformats"
 
 jobs:
   build-windows:
@@ -31,10 +30,10 @@ jobs:
           python -m pip install aqtinstall
 
           # Show what's available (good sanity check in logs)
-          python -m aqt list-qt windows desktop $env:QT_VER --modules $env:QT_ARCH
+          python -m aqt list-qt windows desktop --modules $env:QT_VER $env:QT_ARCH
 
           # Install base + required modules
-          python -m aqt install-qt windows desktop $env:QT_VER $env:QT_ARCH -m $env:QT_MODULES
+          python -m aqt install-qt windows desktop $env:QT_VER $env:QT_ARCH -m qtmultimedia qtimageformats
 
           $QtPath = "$env:GITHUB_WORKSPACE\$env:QT_VER\msvc2019_64"
           echo "Qt5_DIR=$QtPath\lib\cmake\Qt5" >> $env:GITHUB_ENV
