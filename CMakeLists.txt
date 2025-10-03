@@ -2,19 +2,107 @@ cmake_minimum_required(VERSION 3.16)
 
 project(veyon-chat-plugin VERSION 1.0.0 LANGUAGES CXX)
 
-# C++ & Qt
-set(CMAKE_CXX_STANDARD 20)
+# Require C++17 (Qt 5.x is fine with this)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Qt 5 toolchain (matches Veyon 4.9.x)
+# Qt 5.15.x to match Veyon 4.9.7
 find_package(Qt5 REQUIRED COMPONENTS Core Widgets Network Multimedia)
 
-# Allow Actions (or local builds) to point at a checked-out Veyon tree
-set(VEYON_SRC_DIR "" CACHE PATH "Path to the Veyon sources")
-if(NOT DEFINED VEYON_SRC_DIR AND DEFINED ENV{VEYON_SRC_DIR})
-  set(VEYON_SRC_DIR "$ENV{VEYON_SRC_DIR}")
+# ---- Veyon headers (from a local checkout of v4.9.7) ----
+# Pass -DVEYON_SRC_DIR=... from the GitHub Actions configure step
+set(VEYON_SRC_DIR "" CACHE PATH "Path to the Veyon 4.9.7 source tree")
+
+if(NOT VEYON_SRC_DIR)
+  message(FATAL_ERROR "Set -DVEYON_SRC_DIR to a Veyon v4.9.7 checkout (e.g. ${CMAKE_SOURCE_DIR}/veyon-src)")
 endif()
+
+# Find where the headers actually live in that tree
+find_path(VEYON_FEATURE_DIR
+  NAMES Feature.h
+  HINTS ${VEYON_SRC_DIR}
+  PATH_SUFFIXES src src/plugins src/core plugins core include include/veyon
+  NO_DEFAULT_PATH
+)
+find_path(VEYON_PLUGINIFACE_DIR
+  NAMES PluginInterface.h
+  HINTS ${VEYON_SRC_DIR}
+  PATH_SUFFIXES src src/plugins src/core plugins core include include/veyon
+  NO_DEFAULT_PATH
+)
+find_path(VEYON_FEATUREPROV_DIR
+  NAMES FeatureProviderInterface.h
+  HINTS ${VEYON_SRC_DIR}
+  PATH_SUFFIXES src src/plugins src/core plugins core include include/veyon
+  NO_DEFAULT_PATH
+)
+find_path(VEYON_FEATUREMSG_DIR
+  NAMES FeatureMessage.h
+  HINTS ${VEYON_SRC_DIR}
+  PATH_SUFFIXES src src/plugins src/core plugins core include include/veyon
+  NO_DEFAULT_PATH
+)
+find_path(VEYON_SERVERIFACE_DIR
+  NAMES VeyonServerInterface.h
+  HINTS ${VEYON_SRC_DIR}
+  PATH_SUFFIXES src src/master src/server master server include include/veyon
+  NO_DEFAULT_PATH
+)
+find_path(VEYON_WORKERIFACE_DIR
+  NAMES VeyonWorkerInterface.h
+  HINTS ${VEYON_SRC_DIR}
+  PATH_SUFFIXES src src/service src/worker service worker include include/veyon
+  NO_DEFAULT_PATH
+)
+find_path(VEYON_COMPUTERCONTROL_DIR
+  NAMES ComputerControlInterface.h
+  HINTS ${VEYON_SRC_DIR}
+  PATH_SUFFIXES src src/master src/server master server include include/veyon
+  NO_DEFAULT_PATH
+)
+
+if(NOT VEYON_FEATURE_DIR)
+  message(FATAL_ERROR "Feature.h not found under ${VEYON_SRC_DIR}")
+endif()
+if(NOT VEYON_PLUGINIFACE_DIR)
+  message(FATAL_ERROR "PluginInterface.h not found under ${VEYON_SRC_DIR}")
+endif()
+if(NOT VEYON_FEATUREPROV_DIR)
+  message(FATAL_ERROR "FeatureProviderInterface.h not found under ${VEYON_SRC_DIR}")
+endif()
+if(NOT VEYON_FEATUREMSG_DIR)
+  message(FATAL_ERROR "FeatureMessage.h not found under ${VEYON_SRC_DIR}")
+endif()
+if(NOT VEYON_SERVERIFACE_DIR)
+  message(FATAL_ERROR "VeyonServerInterface.h not found under ${VEYON_SRC_DIR}")
+endif()
+if(NOT VEYON_WORKERIFACE_DIR)
+  message(FATAL_ERROR "VeyonWorkerInterface.h not found under ${VEYON_SRC_DIR}")
+endif()
+if(NOT VEYON_COMPUTERCONTROL_DIR)
+  message(FATAL_ERROR "ComputerControlInterface.h not found under ${VEYON_SRC_DIR}")
+endif()
+
+message(STATUS "Using Veyon headers:")
+message(STATUS "  Feature.h:                 ${VEYON_FEATURE_DIR}")
+message(STATUS "  PluginInterface.h:         ${VEYON_PLUGINIFACE_DIR}")
+message(STATUS "  FeatureProviderInterface.h:${VEYON_FEATUREPROV_DIR}")
+message(STATUS "  FeatureMessage.h:          ${VEYON_FEATUREMSG_DIR}")
+message(STATUS "  VeyonServerInterface.h:    ${VEYON_SERVERIFACE_DIR}")
+message(STATUS "  VeyonWorkerInterface.h:    ${VEYON_WORKERIFACE_DIR}")
+message(STATUS "  ComputerControlInterface.h:${VEYON_COMPUTERCONTROL_DIR}")
+
+# Add those include folders so #include \"Feature.h\" etc. resolve
+# (Keep your existing include dirs for your own sources/resources)
+include_directories(
+  ${VEYON_FEATURE_DIR}
+  ${VEYON_PLUGINIFACE_DIR}
+  ${VEYON_FEATUREPROV_DIR}
+  ${VEYON_FEATUREMSG_DIR}
+  ${VEYON_SERVERIFACE_DIR}
+  ${VEYON_WORKERIFACE_DIR}
+  ${VEYON_COMPUTERCONTROL_DIR}
+)
 
 
 # Enable Qt MOC, UIC, and RCC
@@ -27,23 +115,6 @@ set(CMAKE_AUTOUIC_SEARCH_PATHS ui)
 
 # Include project headers
 set(PROJECT_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
-
-# Collect plausible include roots for both old/new layouts
-set(_veyon_inc_candidates
-  "${VEYON_SRC_DIR}"
-  "${VEYON_SRC_DIR}/src"
-  "${VEYON_SRC_DIR}/plugins"              "${VEYON_SRC_DIR}/src/plugins"
-  "${VEYON_SRC_DIR}/core"                 "${VEYON_SRC_DIR}/src/core"
-  "${VEYON_SRC_DIR}/master"               "${VEYON_SRC_DIR}/src/master"
-  "${VEYON_SRC_DIR}/common"               "${VEYON_SRC_DIR}/src/common"
-  "${VEYON_SRC_DIR}/include"              "${VEYON_SRC_DIR}/src/include"
-)
-foreach(_d IN LISTS _veyon_inc_candidates)
-  if(EXISTS "${_d}")
-    list(APPEND VEYON_INCLUDE_DIRS "${_d}")
-  endif()
-endforeach()
-message(STATUS "Using Veyon includes: ${VEYON_INCLUDE_DIRS}")
 
 # Source files (ONLY the .cpp files that actually exist in your repository)
 set(SOURCES
@@ -88,9 +159,8 @@ add_library(veyon-chat-plugin SHARED
     ${RESOURCES}
 )
 
-# Use Veyon's real headers (interfaces live under src/ and src/plugins/)
+# Use project headers
 target_include_directories(veyon-chat-plugin PRIVATE
-    ${VEYON_INCLUDE_DIRS}
     ${PROJECT_INCLUDE_DIR}
 )
 
