@@ -32,8 +32,8 @@ jobs:
           # Show what's available (good sanity check in logs)
           python -m aqt list-qt windows desktop --modules $env:QT_VER $env:QT_ARCH
 
-          # Install base + required modules
-          python -m aqt install-qt windows desktop $env:QT_VER $env:QT_ARCH -m qtmultimedia qtimageformats
+          # Install base packages (Qt 5.15.2 already bundles Multimedia)
+          python -m aqt install-qt windows desktop $env:QT_VER $env:QT_ARCH
 
           $QtPath = "$env:GITHUB_WORKSPACE\$env:QT_VER\msvc2019_64"
           echo "Qt5_DIR=$QtPath\lib\cmake\Qt5" >> $env:GITHUB_ENV
@@ -66,6 +66,7 @@ jobs:
           cmake -G "Visual Studio 17 2022" -A x64 `
             -DCMAKE_BUILD_TYPE=Release `
             -DCMAKE_PREFIX_PATH="$env:GITHUB_WORKSPACE\$env:QT_VER\msvc2019_64" `
+            -DQt5_DIR="$env:Qt5_DIR" `
             -DVEYON_SRC_DIR="$env:VEYON_SRC_DIR" `
             ..
 
