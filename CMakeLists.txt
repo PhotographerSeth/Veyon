@@ -30,6 +30,8 @@ set(PROJECT_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 # Collect plausible include roots for both old/new layouts
 set(_veyon_inc_candidates
+  "${VEYON_SRC_DIR}"
+  "${VEYON_SRC_DIR}/src"
   "${VEYON_SRC_DIR}/plugins"              "${VEYON_SRC_DIR}/src/plugins"
   "${VEYON_SRC_DIR}/core"                 "${VEYON_SRC_DIR}/src/core"
   "${VEYON_SRC_DIR}/master"               "${VEYON_SRC_DIR}/src/master"

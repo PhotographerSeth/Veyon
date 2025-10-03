@@ -24,14 +24,8 @@
 
 #pragma once
 
-#include <Feature.h>
-#include <FeatureMessage.h>
-#include <FeatureProviderInterface.h>
-#include <PluginInterface.h>
-#include <VeyonServerInterface.h>
-#include <VeyonWorkerInterface.h>
+#include "VeyonCompat.h"
 
-#include <ComputerControlInterface.h>
 #include <QtPlugin>
 
 #ifndef VEYON_FEATUREPROVIDERINTERFACE_IID
